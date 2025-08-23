@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { PROJECT_TYPES, ProjectType } from './repl/repl';
+import { ProjectType } from './repl/repl';
 import * as repl from './repl/repl';
+import * as nestJsTypeGenerator from './repl/typeDefinitionGenerator'
+import * as nirvanaOutput from './nirvanaOutput'
 
 export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
@@ -8,8 +10,79 @@ export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.openOutput", openReplOutput]
 ];
 
+async function showProjectTypeOptions(): Promise<ProjectType> {
+    const options: [ProjectType, ProjectType, ProjectType] = ["nestJs", "typescript", "javascript"];
+    const selection = await vscode.window.showQuickPick(options, {
+        placeHolder: 'Select a project type',
+    });
+    return selection as ProjectType;
+}
+
+
+async function askUserMainFile(projectType: ProjectType): Promise<string> {
+    const files = await vscode.workspace.findFiles(
+        projectType === "javascript" ? '**/*.js' : '**/*.ts',
+        '{**/node_modules/**,**/dist/**,**/out/**}'
+    );
+    if (files.length === 0) {
+        vscode.window.showWarningMessage('No matching files found in workspace.');
+        return '';
+    }
+    const items = files.map(f => ({
+        label: vscode.workspace.asRelativePath(f),
+        uri: f
+    }));
+    const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select the main entry file for your project'
+    });
+    return picked ? picked.uri.fsPath : '';
+}
+
+async function askUserToChoseEnvFile(): Promise<string | "None"> {
+    const files = await vscode.workspace.findFiles('**/.env*', '**/node_modules/**');
+    const items = files.map(f => ({
+        label: vscode.workspace.asRelativePath(f),
+        uri: f
+    }));
+
+    // Add "None" option at the top
+    items.unshift({
+        label: 'None',
+        uri: {
+            fsPath: "None"
+        }
+    } as any);
+
+    const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select the .env file for your project'
+    });
+    if (picked && picked.label == "None") {
+        return "None";
+    }
+
+    return picked && picked.uri ? picked.uri.fsPath : '';
+}
 
 async function startRepl() {
+    nirvanaOutput.show();
+    const projectType = await showProjectTypeOptions();
+    if (projectType == null || projectType.length == 0) {
+        vscode.window.showWarningMessage('No project type selected.');
+        return;
+    }
+
+    const mainFile = await askUserMainFile(projectType);
+    if (mainFile == null || mainFile.length == 0) {
+        vscode.window.showWarningMessage('No main file selected.');
+        return;
+    }
+
+    const envFile = await askUserToChoseEnvFile();
+    if (envFile == null || envFile.length == 0) {
+        vscode.window.showWarningMessage('No .env file selected');
+        return;
+    }
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders == null || workspaceFolders.length == 0) {
         vscode.window.showErrorMessage('No workspace folder open.');
@@ -17,33 +90,14 @@ async function startRepl() {
     }
 
     const rootPath = workspaceFolders[0].uri;
-    const configUri = vscode.Uri.joinPath(rootPath, 'nirvana.json');
-    vscode.window.showInformationMessage("Start repl");
     try {
-        const content = await vscode.workspace.fs.readFile(configUri);
-        const decodedBuffer = Buffer.from(content).toString('utf-8');
-        const config = JSON.parse(decodedBuffer) as {
-            "projectType": ProjectType,
-            "main": string
-        };
-        const projectType = config.projectType;
-        if (projectType == null || !PROJECT_TYPES.includes(projectType)) {
-            vscode.window.showErrorMessage(`The value of the projectType in nirvana.json config file is wrong. Should be one of: ${PROJECT_TYPES}`);
-            return;
-        }
-
-        const main = config.main;
-        if (main == null || main.length == 0) {
-            vscode.window.showErrorMessage("The value of main in nirvana.json config file is wrong. Should be the path of your project main file.");
-            return;
-        }
-
-        const rs = await repl.startRepl(rootPath.fsPath, projectType, [main]);
+        await nestJsTypeGenerator.generateTypeDefinitions(rootPath.fsPath);
+        const rs = await repl.startRepl(rootPath.fsPath, projectType, [mainFile], envFile == "None" ? undefined : envFile);
         if (!rs[0]) {
-            vscode.window.showErrorMessage(`Failed to start REPL for ${main}: ${rs[1]}`);
+            vscode.window.showErrorMessage(`Failed to start REPL for ${mainFile}: ${rs[1]}`);
             return;
         }
-        vscode.window.showInformationMessage(`REPL started for ${main}`);
+        vscode.window.showInformationMessage(`REPL started for ${mainFile}`);
     } catch (err: any) {
         if (err.code === 'FileNotFound') {
             vscode.window.showWarningMessage('The nirvana.json config file not found in the root folder.');
@@ -54,6 +108,7 @@ async function startRepl() {
 }
 
 async function stopRepl() {
+    repl.stopRepl();
     vscode.window.showInformationMessage("REPL stopped");
 }
 

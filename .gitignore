@@ -1,5 +1,12 @@
 node_modules
 out
-.vscode
 .vscode-test
 test-projects/nestjs/dist
+test-projects/nestjs/.calva
+test-projects/nestjs/.clj-kondo
+test-projects/nestjs/.lsp
+test-projects/nestjs/.vscode
+.vscode/**
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/settings.json

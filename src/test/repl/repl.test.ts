@@ -6,21 +6,21 @@ const nestJsProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
 
 suite("Start repl tests", () => {
     test("Should fail on incorrect projectType", async () => {
-        const [suc, err] = await repl.startRepl(nestJsProjectPath, "xxx" as any, ["/src/app.module.ts"]);
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, "xxx" as any, ["/src/app.module.ts"], undefined);
         assert.strictEqual(suc, false);
         assert.strictEqual(err, "Unsupported project type xxx");
     });
 
     test("Should fail on incorrect nestjs main", async function () {
         this.timeout(20000);
-        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/main.ts"], 5000);
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/main.ts"], undefined, 5000);
         assert.strictEqual(suc, false);
         assert.strictEqual(err, "REPL failed to initialize properly");
     });
 
     test("Should succeed on correct nestjs main", async function () {
         this.timeout(20000); // Increased timeout  
-        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/app.module.ts"]);
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/app.module.ts"], undefined);
         assert.strictEqual(suc, true);
         assert.strictEqual(err, undefined);
     });
@@ -35,7 +35,7 @@ suite("NestJs REPL eval tests", function () {
         this.timeout(25000);
         console.log("🚀 Starting REPL for eval tests...");
 
-        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/app.module.ts"]);
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/app.module.ts"], path.resolve(nestJsProjectPath, ".env.dev"));
         replStarted = suc;
         startupError = err;
 
@@ -58,6 +58,13 @@ suite("NestJs REPL eval tests", function () {
             throw new Error(`REPL failed to start: ${startupError}`);
         }
         assert.strictEqual(replStarted, true, "REPL should have started successfully");
+    });
+
+    test("Should set env variables successfully", async function () {
+        this.timeout(10000)
+        assert.ok(replStarted, "REPL should have started");
+        const res = await repl.replEval("process.env.TEST", 5000);
+        assert.strictEqual(res.trim(), "'testenv'");
     });
 
     test("Should eval successfully", async function () {

@@ -2,8 +2,6 @@ import assert from 'assert';
 import * as cmd from '../command';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as repl from '../repl/repl';
 
 suite('command tests', () => {
@@ -20,7 +18,18 @@ suite('start repl tests', () => {
     let workspaceFoldersStub: sinon.SinonStub;
     let showInformationMessageStub: sinon.SinonStub;
     let startReplStub: sinon.SinonStub;
+    let showQuickPickStub: sinon.SinonStub;
+    let showOpenDialogStub: sinon.SinonStub;
+    let findFilesStub: sinon.SinonStub;
+    let generateTypeDefinitionsStub: sinon.SinonStub;
     const startReplCmd = cmd.commands[0][1];
+
+    // Mock workspace folder for testing
+    const mockWorkspaceFolder: vscode.WorkspaceFolder = {
+        uri: vscode.Uri.file('/test/workspace'),
+        name: 'test-workspace',
+        index: 0
+    };
 
     setup(() => {
         // Create stubs for VS Code APIs
@@ -28,11 +37,19 @@ suite('start repl tests', () => {
         showWarningMessageStub = sinon.stub(vscode.window, 'showWarningMessage');
         workspaceFoldersStub = sinon.stub(vscode.workspace, 'workspaceFolders');
         showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage');
+        showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick');
+        showOpenDialogStub = sinon.stub(vscode.window, 'showOpenDialog');
+        findFilesStub = sinon.stub(vscode.workspace, 'findFiles');
 
         // Stub the repl.startRepl function to avoid actually starting a REPL during tests
         startReplStub = sinon.stub(repl, 'startRepl');
         // Default behavior: return success
         startReplStub.resolves([true, undefined]);
+
+        // Mock the type generator
+        const nestJsTypeGenerator = require('../services/typeDefinitionGenerator');
+        generateTypeDefinitionsStub = sinon.stub(nestJsTypeGenerator, 'generateTypeDefinitions');
+        generateTypeDefinitionsStub.resolves();
     });
 
     teardown(() => {
@@ -41,7 +58,11 @@ suite('start repl tests', () => {
         if (showWarningMessageStub) showWarningMessageStub.restore();
         if (workspaceFoldersStub) workspaceFoldersStub.restore();
         if (showInformationMessageStub) showInformationMessageStub.restore();
+        if (showQuickPickStub) showQuickPickStub.restore();
+        if (showOpenDialogStub) showOpenDialogStub.restore();
+        if (findFilesStub) findFilesStub.restore();
         if (startReplStub) startReplStub.restore();
+        if (generateTypeDefinitionsStub) generateTypeDefinitionsStub.restore();
         sinon.restore();
     });
 
@@ -50,152 +71,159 @@ suite('start repl tests', () => {
         sinon.restore();
     });
 
-    test('should fail when no workspace folder setup', async () => {
-        // Mock no workspace folders
-        workspaceFoldersStub.value(undefined);
+    test('should abort on user cancellation of project type selection', async () => {
+        // Mock workspace folders
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
+        // Mock user cancelling project type selection
+        showQuickPickStub.resolves(undefined); // User cancelled
 
         await startReplCmd();
 
-        // Verify that showErrorMessage was called with the expected message
+        // Verify that only the first QuickPick was called
+        assert.strictEqual(showQuickPickStub.callCount, 1);
+        assert.strictEqual(showWarningMessageStub.calledWith("No project type selected."), true);
+    });
+
+    test("should abort on user cancellation of main file selection", async () => {
+        // Mock workspace folders
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
+        showQuickPickStub.onCall(0).resolves('nestJs'); // Project type
+        findFilesStub.resolves([vscode.Uri.file('/test/workspace/src/main.ts')]);
+        // Mock user cancelling main file selection
+        showQuickPickStub.onCall(1).resolves(undefined); // User cancelled
+
+        await startReplCmd();
+
+        assert.strictEqual(showQuickPickStub.callCount, 2);
+        assert.strictEqual(findFilesStub.callCount, 1)
+        assert.strictEqual(showWarningMessageStub.calledWith("No main file selected."), true);
+    });
+
+    test("should abort on user cancellation of env file selection", async () => {
+        // Mock workspace folders
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
+        showQuickPickStub.onCall(0).resolves('nestJs'); // Project type
+        findFilesStub.resolves([vscode.Uri.file('/test/workspace/src/main.ts')]);
+        showQuickPickStub.onCall(1).resolves({
+            label: 'src/main.ts',
+            uri: vscode.Uri.file('/test/workspace/src/main.ts')
+        }); 
+        showQuickPickStub.onCall(2).resolves(undefined); // User cancelled
+        await startReplCmd();
+        assert.strictEqual(showQuickPickStub.callCount, 3);
+        assert.strictEqual(findFilesStub.callCount, 2);
+        assert.strictEqual(showWarningMessageStub.calledWith("No .env file selected"), true);
+    });
+
+    test('should fail when no workspace folder setup', async () => {
+        // Mock no workspace folders - but this check happens later in the flow
+        workspaceFoldersStub.value(undefined);
+
+        // Mock user selections that would normally happen
+        showQuickPickStub.onCall(0).resolves('nestJs'); // Project type
+
+        // Mock findFiles to return some files
+        const mockFile = vscode.Uri.file('/test/workspace/src/main.ts');
+        findFilesStub.onCall(0).resolves([mockFile]); // For main file search
+        findFilesStub.onCall(1).resolves([vscode.Uri.file('None')]); // For env file search
+
+        // Mock asRelativePath
+
+        // Mock user selecting main file
+        showQuickPickStub.onCall(1).resolves({
+            label: 'src/main.ts',
+            uri: mockFile
+        });
+
+        // Mock user selecting env file
+        showQuickPickStub.onCall(2).resolves({
+            label: '.env',
+            uri: vscode.Uri.file('/test/workspace/.env')
+        });
+
+        await startReplCmd();
+
+        // The error should happen after all user interactions
+        assert.strictEqual(showQuickPickStub.callCount, 3); // All user interactions completed
         assert.strictEqual(showErrorMessageStub.calledOnce, true);
         assert.strictEqual(showErrorMessageStub.calledWith('No workspace folder open.'), true);
     });
 
     test('should fail when workspace folders array is empty', async () => {
-        // Mock empty workspace folders array
         workspaceFoldersStub.value([]);
+        const mockFile = { label: 'src/main.ts', uri: vscode.Uri.file('/test/workspace/src/main.ts') };
+        findFilesStub.onCall(0).resolves([mockFile]); // For main file search
+        findFilesStub.onCall(1).resolves([mockFile]); // For env file search
+        showQuickPickStub.onCall(0).resolves("nestJs");
+        showQuickPickStub.onCall(1).resolves(mockFile);
+        showQuickPickStub.onCall(2).resolves({
+            label: "None",
+            uri: vscode.Uri.file('None')
+        });
 
         await startReplCmd();
 
         // Verify that showErrorMessage was called with the expected message
-        assert.strictEqual(showErrorMessageStub.calledOnce, true);
+        assert.strictEqual(showQuickPickStub.calledThrice, true);
         assert.strictEqual(showErrorMessageStub.calledWith('No workspace folder open.'), true);
     });
 
-    test(`should fail when the config is missing`, async () => {
-        const testProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
-        const workspaceFolder = { uri: vscode.Uri.file(testProjectPath) };
-        //rename the nirvana.json file to nirvana.json.bak if exists.
-        const configFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json');
-        const newConfigFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json.bak');
+    test('should handle user cancellation at project type selection', async () => {
+        // Mock workspace folders
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
 
-        if (fs.existsSync(configFilePath)) {
-            fs.renameSync(configFilePath, newConfigFilePath);
-        }
+        // Mock user cancelling project type selection
+        showQuickPickStub.resolves(undefined); // User cancelled
 
-        // Mock a workspace folder
-        workspaceFoldersStub.value([workspaceFolder]);
+        // Mock findFiles (won't be called due to early return)
+        findFilesStub.resolves([]);
 
         await startReplCmd();
 
-        // Verify that showWarningMessage was called with the expected message
-        assert.strictEqual(showWarningMessageStub.calledOnce, true);
-        assert.strictEqual(showWarningMessageStub.calledWith('The nirvana.json config file not found in the root folder.'), true);
-
-        //rename back the config file.
-        if (fs.existsSync(newConfigFilePath)) {
-            fs.renameSync(newConfigFilePath, configFilePath);
-        }
+        // Verify that only the first QuickPick was called
+        assert.strictEqual(showQuickPickStub.callCount, 1);
+        // No further interactions should happen after cancellation
+        assert.strictEqual(showOpenDialogStub.callCount, 0);
     });
 
-    test(`Should fail when the config is incorrect`, async () => {
-        const testProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
-        const workspaceFolder = { uri: vscode.Uri.file(testProjectPath) };
-        // Mock a workspace folder
-        workspaceFoldersStub.value([workspaceFolder]);
+    test('should handle user cancellation at main file selection', async () => {
+        // Mock workspace folders
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
 
-        //rename the config file to nirvana.json.bak first
-        //and then create a new config file to the workspace.
-        const configFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json');
-        const bacConfigFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json.bak');
-        if (fs.existsSync(configFilePath)) {
-            fs.renameSync(configFilePath, bacConfigFilePath);
-        }
-        fs.writeFileSync(configFilePath, JSON.stringify({ projectType: 'incorrect_type' }));
+        // Mock user selections
+        showQuickPickStub.onCall(0).resolves('nestJs'); // Project type
 
-        await startReplCmd();
-        // Verify that showErrorMessage was called with the expected message
-        assert.strictEqual(showErrorMessageStub.calledOnce, true);
-        assert.ok(showErrorMessageStub.calledWith(sinon.match(/The value of the projectType in nirvana.json config file is wrong/)));
+        // Mock findFiles to return some files
+        const mockFile = vscode.Uri.file('/test/workspace/src/main.ts');
+        findFilesStub.onCall(0).resolves([mockFile]); // For main file search
+        findFilesStub.onCall(1).resolves([vscode.Uri.file('/test/workspace/.env')]); // For env file search
 
-        fs.writeFileSync(configFilePath, JSON.stringify({ projectType: "nestJs", main: null }));
-        await startReplCmd();
-        assert.strictEqual(showErrorMessageStub.calledTwice, true);
-        assert.ok(showErrorMessageStub.calledWith(sinon.match(/The value of main in nirvana.json config file is wrong. Should be the path of your project main file./)));
 
-        // Clean up: remove the created file and restore the original if it existed
-        if (fs.existsSync(configFilePath)) {
-            fs.unlinkSync(configFilePath);
-        }
-        if (fs.existsSync(bacConfigFilePath)) {
-            fs.renameSync(bacConfigFilePath, configFilePath);
-        }
-    });
-
-    test(`Should fail on invalid main file`, async () => {
-        const testProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
-        const workspaceFolder = { uri: vscode.Uri.file(testProjectPath) };
-        // Mock a workspace folder
-        workspaceFoldersStub.value([workspaceFolder]);
-
-        // Mock repl.startRepl to return failure for invalid file
-        startReplStub.resolves([false, 'File not found: src/invalid-file.ts']);
-
-        //rename the config file to nirvana.json.bak first
-        //and then create a new config file to the workspace.
-        const configFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json');
-        const bacConfigFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json.bak');
-        if (fs.existsSync(configFilePath)) {
-            fs.renameSync(configFilePath, bacConfigFilePath);
-        }
-        fs.writeFileSync(configFilePath, JSON.stringify({ projectType: "nestJs", main: "src/invalid-file.ts" }));
-
+        // Mock user cancelling main file selection via QuickPick
+        showQuickPickStub.onCall(1).resolves(undefined); // User cancelled main file selection
         await startReplCmd();
 
-        // Verify that showErrorMessage was called with the expected message
-        assert.strictEqual(showErrorMessageStub.calledOnce, true);
-        assert.ok(showErrorMessageStub.calledWith(sinon.match(/Failed to start REPL for src\/invalid-file.ts/)));
-
-        // Clean up: remove the created file and restore the original if it existed
-        if (fs.existsSync(configFilePath)) {
-            fs.unlinkSync(configFilePath);
-        }
-        if (fs.existsSync(bacConfigFilePath)) {
-            fs.renameSync(bacConfigFilePath, configFilePath);
-        }
+        // Verify the flow stopped after main file selection cancellation
+        assert.strictEqual(showQuickPickStub.callCount, 2); // Project type + main file
+        assert.strictEqual(showOpenDialogStub.callCount, 0);
+        // No env file selection should occur
     });
 
     test(`Should start the REPL successfully`, async () => {
-        const testProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
-        const workspaceFolder = { uri: vscode.Uri.file(testProjectPath) };
-        // Mock a workspace folder
-        workspaceFoldersStub.value([workspaceFolder]);
+        workspaceFoldersStub.value([mockWorkspaceFolder]);
+        const mockFile = { label: 'src/main.ts', uri: vscode.Uri.file('/test/workspace/src/main.ts') };
+        findFilesStub.onCall(0).resolves([mockFile]); // For main file search
+        findFilesStub.onCall(1).resolves([mockFile]); // For env file search
+        showQuickPickStub.onCall(0).resolves("nestJs");
+        showQuickPickStub.onCall(1).resolves(mockFile);
+        showQuickPickStub.onCall(2).resolves({
+            label: "None",
+            uri: vscode.Uri.file('None')
+        });
 
-        // Mock repl.startRepl to return success
-        startReplStub.resolves([true, undefined]);
-
-        //rename the config file to nirvana.json.bak first
-        //and then create a new config file to the workspace.
-        const configFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json');
-        const bacConfigFilePath = path.join(workspaceFolder.uri.fsPath, 'nirvana.json.bak');
-        if (fs.existsSync(configFilePath)) {
-            fs.renameSync(configFilePath, bacConfigFilePath);
-        }
-        fs.writeFileSync(configFilePath, JSON.stringify({ projectType: "nestJs", main: "src/app.module.ts" }));
-
+        startReplStub.resolves([true, undefined])
         await startReplCmd();
-
-        // Verify that showInformationMessage was called with the expected message
-        assert.strictEqual(showInformationMessageStub.calledTwice, true); // "Start repl" + "REPL started for..."
-        assert.ok(showInformationMessageStub.calledWith("Start repl"));
-        assert.ok(showInformationMessageStub.calledWith("REPL started for src/app.module.ts"));
-
-        // Clean up: remove the created file and restore the original if it existed
-        if (fs.existsSync(configFilePath)) {
-            fs.unlinkSync(configFilePath);
-        }
-        if (fs.existsSync(bacConfigFilePath)) {
-            fs.renameSync(bacConfigFilePath, configFilePath);
-        }
+        assert.strictEqual(showQuickPickStub.calledThrice, true);
+        assert.strictEqual(showInformationMessageStub.calledWith('REPL started for /test/workspace/src/main.ts'), true);
     });
 });

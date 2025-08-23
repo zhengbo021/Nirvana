@@ -10,7 +10,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
@@ -51,5 +53,8 @@
     "eslint": "^9.32.0",
     "sinon": "^21.0.0",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
   }
 }

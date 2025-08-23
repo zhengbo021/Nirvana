@@ -3,7 +3,6 @@ const { resolve } = require('path');
 
 async function bootstrap() {
   const mainFilePath = process.argv[2]; // Get main file path from CLI args
-  
   try {
     console.log(`Loading NestJS module from: ${mainFilePath}`);
     

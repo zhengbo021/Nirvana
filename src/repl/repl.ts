@@ -1,20 +1,33 @@
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import path from "path";
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import { appendLine } from '../nirvanaOutput'
+import * as fs from 'fs';
+import * as dotenv from 'dotenv'
 
 export const PROJECT_TYPES = ["nestJs", "typescript", "javascript"] as const;
-export type ProjectType = typeof PROJECT_TYPES[number]
-var repl: null | ChildProcessWithoutNullStreams = null;
-let outputChannel: vscode.OutputChannel;
+export type ProjectType = typeof PROJECT_TYPES[number];
 
-function createOutputChannel() {
-    outputChannel = vscode.window.createOutputChannel("Nirvana REPL");
+let repl: null | ChildProcessWithoutNullStreams = null;
+async function readEnv(envFilePath: string | undefined): Promise<[boolean, Record<string, string>]> {
+    if (envFilePath == null) {
+        return [true, {}]
+    }
+    let env: Record<string, string> = {};
+    try {
+        if (fs.existsSync(envFilePath)) {
+            const envContent = fs.readFileSync(envFilePath, 'utf-8');
+            env = dotenv.parse(envContent);
+        }
+    } catch (e) {
+        appendLine(`⚠️ Failed to load env file: ${e}`);
+        return [false, {}]
+    }
+    return [true, env];
 }
 
-async function startNestJsRepl(workingspacePath: string, mainFilePath: string, maxReplWaitTime: number): Promise<[boolean, string | undefined]> {
-    createOutputChannel();
-    outputChannel.show(true);
-    outputChannel.appendLine("Starting REPL process...");
+async function startNestJsRepl(workingspacePath: string, mainFilePath: string, maxReplWaitTime: number, envFilePath: string | undefined): Promise<[boolean, string | undefined]> {
+    appendLine("Starting REPL process...");
 
     try {
         const replStarterPath = path.join(__dirname, 'nestJsReplStarter.js');
@@ -26,68 +39,72 @@ async function startNestJsRepl(workingspacePath: string, mainFilePath: string, m
             replStarterPath,
             mainFilePath
         ];
+        const [suc, extraEnv] = await readEnv(envFilePath);
+        if (!suc) {
+            return [false, `Failed to load env file ${envFilePath}`];
+        }
+        appendLine(`Using env file: ${envFilePath} and the following environment variables:`);
+        for (const [key, value] of Object.entries(extraEnv)) {
+            appendLine(`${key}=${value}`);
+        }
 
         repl = spawn(command, args, {
             cwd: workingspacePath,
-            env: { ...process.env, NODE_PATH: `${workingspacePath}/node_modules` },
+            env: { ...process.env, NODE_PATH: `${workingspacePath}/node_modules`, ...extraEnv },
             stdio: 'pipe'
         });
 
-        // Set up basic output logging
         const outputHandler = (data: any) => {
-            outputChannel.appendLine(data.toString().trim());
+            appendLine(data.toString().trim());
         };
         repl.stdout.on('data', outputHandler);
         repl.stderr.on('data', outputHandler);
         repl.on('close', (code) => {
-            outputChannel.appendLine(`\nREPL process exited with code ${code}`);
+            appendLine(`\nREPL process exited with code ${code}`);
             repl = null;
         });
 
-        outputChannel.appendLine("Waiting for REPL to be ready...");
+        appendLine("Waiting for REPL to be ready...");
         const isReady = await waitForReplReady(maxReplWaitTime);
 
         if (!isReady) {
-            outputChannel.appendLine("❌ REPL failed to become ready");
+            appendLine("❌ REPL failed to become ready");
             return [false, "REPL failed to initialize properly"];
         }
 
-        outputChannel.appendLine("✅ REPL is ready!");
+        appendLine("✅ REPL is ready!");
         return [true, undefined];
     } catch (err: any) {
-        outputChannel.appendLine(`❌ Error on starting repl: ${err.message}`);
+        appendLine(`❌ Error on starting repl: ${err.message}`);
         vscode.window.showErrorMessage(`Error on starting repl: ${err.message}`);
         return [false, err.message];
     }
 }
 
-export async function startRepl(wsPath: string, projectType: ProjectType, filesToLoad: string[], maxReplWaitTime: number = 15000): Promise<[boolean, string | undefined]> {
+export async function startRepl(wsPath: string, projectType: ProjectType, filesToLoad: string[], envFilePath: string | undefined = undefined, maxReplWaitTime: number = 15000): Promise<[boolean, string | undefined]> {
     let suc = false;
     let err: string | undefined = `Unsupported project type ${projectType}`;
     if (projectType == "nestJs") {
         vscode.window.showInformationMessage("Starting nestJs REPL...");
-        const [nestTsSuc, nestTsErr] = await startNestJsRepl(wsPath, filesToLoad[0], maxReplWaitTime);
-        suc = nestTsSuc;
-        err = nestTsErr;
+        [suc, err] = await startNestJsRepl(wsPath, filesToLoad[0], maxReplWaitTime, envFilePath);
     }
-
     return [suc, err];
 }
 
 export function stopRepl() {
     if (repl) {
-        outputChannel.appendLine("🛑 Stopping REPL...");
+        appendLine("🛑 Stopping REPL...");
         repl.kill('SIGTERM');
         repl = null;
-        outputChannel.appendLine("✅ REPL stopped");
+        appendLine("✅ REPL stopped");
     } else {
-        outputChannel.appendLine("ℹ️ No running REPL to stop");
+        appendLine("ℹ️ No running REPL to stop");
     }
 }
 
 export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
     if (!repl) {
-        outputChannel.appendLine("ℹ️ No running REPL to evaluate code.");
+        appendLine("ℹ️ No running REPL to evaluate code.");
         throw new Error("REPL is not running.");
     }
 
@@ -127,11 +144,11 @@ export async function replEval(code: string, timeoutMs: number = 5000): Promise<
         const onErrorData = (data: Buffer) => {
             const errorOutput = data.toString();
             output += errorOutput;
-            outputChannel.append(`STDERR: ${errorOutput}`);
+            appendLine(`STDERR: ${errorOutput}`);
         };
 
         const onClose = () => {
-            outputChannel.appendLine(`repl on close......`);
+            appendLine(`repl on close......`);
             if (!isResolved) {
                 isResolved = true;
                 clearTimeout(timeout);
@@ -159,7 +176,7 @@ export async function replEval(code: string, timeoutMs: number = 5000): Promise<
         repl.on('close', onClose);
         repl.on('error', onError);
 
-        outputChannel.appendLine(`\n📤 Sending to REPL: ${code}`);
+        appendLine(`\n📤 Sending to REPL: ${code}`);
         repl.stdin.write(code + '\n');
     });
 }
@@ -172,25 +189,25 @@ function extractResult(rawOutput: string): string {
 
 async function waitForReplReady(maxWaitTime: number = 15000): Promise<boolean> {
     if (!repl) {
-        outputChannel.appendLine("❌ REPL process not initialized");
+        appendLine("❌ REPL process not initialized");
         return false;
     }
 
     const startTime = Date.now();
     const retryInterval = 2000; // Try every 2 seconds
 
-    outputChannel.appendLine("🔍 Testing REPL readiness...");
+    appendLine("🔍 Testing REPL readiness...");
 
     while (Date.now() - startTime < maxWaitTime) {
         try {
             const result = await replEval('console.log("REPL READY")', 3000);
             if (result && result.includes("REPL READY")) {
-                outputChannel.appendLine("✅ REPL is ready!");
+                appendLine("✅ REPL is ready!");
                 return true;
             }
         } catch (error: any) {
             // REPL not ready yet, continue trying
-            outputChannel.appendLine(`⏳ REPL not ready yet, retrying... (${error.message})`);
+            appendLine(`⏳ REPL not ready yet, retrying... (${error.message})`);
         }
 
         // Wait before next attempt
@@ -198,6 +215,6 @@ async function waitForReplReady(maxWaitTime: number = 15000): Promise<boolean> {
     }
 
     // Timeout reached
-    outputChannel.appendLine("❌ REPL ready check timed out");
+    appendLine("❌ REPL ready check timed out");
     return false;
 }
