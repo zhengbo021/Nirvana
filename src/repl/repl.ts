@@ -2,7 +2,7 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import path from "path";
 import * as vscode from 'vscode';
 
-export const PROJECT_TYPES = ["nestJS", "nestTS", "typescript", "javascript"] as const;
+export const PROJECT_TYPES = ["nestJs", "typescript", "javascript"] as const;
 export type ProjectType = typeof PROJECT_TYPES[number]
 var repl: null | ChildProcessWithoutNullStreams = null;
 let outputChannel: vscode.OutputChannel;
@@ -11,7 +11,7 @@ function createOutputChannel() {
     outputChannel = vscode.window.createOutputChannel("Nirvana REPL");
 }
 
-async function startNestTSRepl(workingspacePath: string, mainFilePath: string): Promise<[boolean, string | undefined]> {
+async function startNestJsRepl(workingspacePath: string, mainFilePath: string): Promise<[boolean, string | undefined]> {
     createOutputChannel();
     outputChannel.show(true);
     outputChannel.appendLine("Starting REPL process...");
@@ -58,9 +58,9 @@ async function startNestTSRepl(workingspacePath: string, mainFilePath: string): 
 export async function startRepl(wsPath: string, projectType: ProjectType, filesToLoad: string[]): Promise<[boolean, string | undefined]> {
     let suc = false;
     let err: string | undefined = `Unsupported project type ${projectType}`;
-    if (projectType == "nestTS") {
-        vscode.window.showInformationMessage("Starting nestJs repl...");
-        const [nestTsSuc, nestTsErr] = await startNestTSRepl(wsPath, filesToLoad[0]);
+    if (projectType == "nestJs") {
+        vscode.window.showInformationMessage("Starting nestJs REPL...");
+        const [nestTsSuc, nestTsErr] = await startNestJsRepl(wsPath, filesToLoad[0]);
         suc = nestTsSuc;
         err = nestTsErr;
     }

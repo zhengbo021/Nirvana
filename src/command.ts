@@ -38,8 +38,12 @@ async function startRepl() {
             return;
         }
 
-        await repl.startRepl(rootPath.fsPath, projectType, [main]);
-        vscode.window.showInformationMessage(`The config: ${JSON.stringify(config)}`);
+        const rs = await repl.startRepl(rootPath.fsPath, projectType, [main]);
+        if (!rs[0]) {
+            vscode.window.showErrorMessage(`Failed to start REPL for ${main}: ${rs[1]}`);
+            return;
+        }
+        vscode.window.showInformationMessage(`REPL started for ${main}`);
     } catch (err: any) {
         if (err.code === 'FileNotFound') {
             vscode.window.showWarningMessage('The nirvana.json config file not found in the root folder.');
@@ -50,11 +54,11 @@ async function startRepl() {
 }
 
 async function stopRepl() {
-    vscode.window.showInformationMessage("stop repl");
+    vscode.window.showInformationMessage("REPL stopped");
 }
 
 async function openReplOutput() {
-    vscode.window.showInformationMessage("open repl output");
+    vscode.window.showInformationMessage("REPL output opened");
 }
 
 export function registerCommands(context: vscode.ExtensionContext) {
