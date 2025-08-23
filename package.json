@@ -1,9 +1,9 @@
 {
-  "name": "Nirvana",
+  "name": "nirvana",
   "displayName": "Nirvana",
   "description": "A clojure calva like repl tool for javascript and tyepscript",
   "version": "0.0.1",
-  "publisher": "nirvana-dev",
+  "publisher": "zhengma",
   "engines": {
     "vscode": "^1.103.0"
   },
