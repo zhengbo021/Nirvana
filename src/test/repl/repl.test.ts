@@ -6,11 +6,10 @@ const nestJsProjectPath = path.resolve(process.cwd(), 'test-projects/nestjs');
 
 suite("Start repl tests", () => {
     test("Should fail on incorrect projectType", async () => {
-        const [suc, err] = await repl.startRepl(nestJsProjectPath, "xxx" as any, ["/src/app.module.ts"])
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, "xxx" as any, ["/src/app.module.ts"]);
         assert.strictEqual(suc, false);
         assert.strictEqual(err, "Unsupported project type xxx");
     });
-
 
     test("Should fail on incorrect nestjs main", async function () {
         this.timeout(20000);
@@ -25,7 +24,7 @@ suite("Start repl tests", () => {
         assert.strictEqual(suc, true);
         assert.strictEqual(err, undefined);
     });
-})
+});
 
 
 suite("NestJs REPL eval tests", function () {
@@ -50,6 +49,8 @@ suite("NestJs REPL eval tests", function () {
     suiteTeardown(function () {
         console.log("🛑 Cleaning up REPL...");
         repl.stopRepl();
+        // Add a small delay to ensure cleanup is complete
+        return new Promise(resolve => setTimeout(resolve, 1000));
     });
 
     test("Should start REPL successfully", function () {
@@ -69,9 +70,9 @@ suite("NestJs REPL eval tests", function () {
     test('Should able to eval on service.', async function () {
         this.timeout(10000);
         assert.ok(replStarted, "REPL should have started");
-        const rs = await repl.replEval("get(AppService).getHello()")
+        const rs = await repl.replEval("get(AppService).getHello()");
         assert.strictEqual(rs.trim(), "'Hello REPL!'");
-    })
+    });
 
     test("Should timeout on long running eval", async function () {
         this.timeout(15000);
@@ -82,6 +83,52 @@ suite("NestJs REPL eval tests", function () {
             assert.fail("Expected timeout error");
         } catch (err: any) {
             assert.ok(err.message.includes("REPL evaluation timed out."));
+        }
+    });
+});
+
+suite("NestJs stop REPL tests", () => {
+    let replStarted = false;
+    let startupError: string | undefined;
+
+    suiteSetup(async function () {
+        this.timeout(25000);
+        // Add a delay to ensure previous suite is fully cleaned up
+        console.log("⏳ Waiting for previous suite cleanup...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        console.log("🚀 Starting REPL for stop tests...");
+
+        const [suc, err] = await repl.startRepl(nestJsProjectPath, 'nestJs', ["src/app.module.ts"]);
+        replStarted = suc;
+        startupError = err;
+
+        if (suc) {
+            console.log("✅ REPL started successfully for stop tests");
+        } else {
+            console.error(`❌ Failed to start REPL: ${err}`);
+        }
+    });
+
+    suiteTeardown(function () {
+        console.log("🛑 Cleaning up REPL...");
+        repl.stopRepl();
+        // Add a small delay to ensure cleanup is complete
+        return new Promise(resolve => setTimeout(resolve, 1000));
+    });
+
+    test("Should stop REPL successfully", async function () {
+        this.timeout(10000);
+        assert.ok(replStarted, "REPL should have started");
+
+        repl.stopRepl();
+
+        // Test that REPL eval returns the expected message when REPL is stopped
+        try {
+            await repl.replEval("1 + 1");
+        } catch (err: any) {
+            assert.ok(err.message.includes("REPL is not running."), "Expected REPL not running message");
+            return;
         }
     });
 });

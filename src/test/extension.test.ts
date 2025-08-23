@@ -36,7 +36,15 @@ suite('Extension Tests', () => {
 	});
 
 	teardown(() => {
-		registerCommandStub.restore();
+		// Restore stubs after each test
+		if (registerCommandStub) {
+			registerCommandStub.restore();
+		}
+		sinon.restore();
+	});
+
+	suiteTeardown(() => {
+		// Final cleanup
 		sinon.restore();
 	});
 

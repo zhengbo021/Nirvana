@@ -81,14 +81,14 @@ export function stopRepl() {
         repl = null;
         outputChannel.appendLine("✅ REPL stopped");
     } else {
-        outputChannel.appendLine("ℹ️ No REPL running to stop");
+        outputChannel.appendLine("ℹ️ No running REPL to stop");
     }
 }
 
 export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
     if (!repl) {
-        vscode.window.showErrorMessage('REPL is not running.');
-        return "Error: REPL is not running.";
+        outputChannel.appendLine("ℹ️ No running REPL to evaluate code.");
+        throw new Error("REPL is not running.");
     }
 
     return new Promise((resolve, reject) => {
