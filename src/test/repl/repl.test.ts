@@ -66,6 +66,13 @@ suite("NestJs REPL eval tests", function () {
         assert.strictEqual(res.trim(), "2");
     });
 
+    test('Should able to eval on service.', async function () {
+        this.timeout(10000);
+        assert.ok(replStarted, "REPL should have started");
+        const rs = await repl.replEval("get(AppService).getHello()")
+        assert.strictEqual(rs.trim(), "'Hello REPL!'");
+    })
+
     test("Should timeout on long running eval", async function () {
         this.timeout(15000);
         assert.ok(replStarted, "REPL should have started");
