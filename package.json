@@ -3,6 +3,7 @@
   "displayName": "Nirvana",
   "description": "A clojure calva like repl tool for javascript and tyepscript",
   "version": "0.0.1",
+  "publisher": "nirvana-dev",
   "engines": {
     "vscode": "^1.103.0"
   },
@@ -10,7 +11,7 @@
     "Other"
   ],
   "activationEvents": [],
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
