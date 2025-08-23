@@ -36,6 +36,7 @@ suite('Extension Tests', () => {
 	});
 
 	teardown(() => {
+		registerCommandStub.restore();
 		sinon.restore();
 	});
 

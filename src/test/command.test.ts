@@ -37,6 +37,11 @@ suite('start repl tests', () => {
 
     teardown(() => {
         // Restore all stubs after each test
+        showErrorMessageStub.restore();
+        showWarningMessageStub.restore();
+        workspaceFoldersStub.restore();
+        showInformationMessageStub.restore();
+        startReplStub.restore();
         sinon.restore();
     });
 
