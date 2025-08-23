@@ -123,7 +123,6 @@ suite("NestJs stop REPL tests", () => {
 
         repl.stopRepl();
 
-        // Test that REPL eval returns the expected message when REPL is stopped
         try {
             await repl.replEval("1 + 1");
         } catch (err: any) {
