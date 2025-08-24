@@ -37,23 +37,17 @@ export async function cleanup(workspaceRoot: string) {
 
 function buildTypeDefinitions(): string {
     return `
-        // Auto-generated type definitions for Nirvana REPL
-// This file provides TypeScript support for NestJS service access in REPL context
-
 declare global {
-
-
   interface NirvanaAppContext {
     get<T>(serviceClass: new (...args: any[]) => T): T;
   }
 
   const app: NirvanaAppContext;
 
-  // Helper function for getting services
   function get<T>(serviceClass: new (...args: any[]) => T): T;
+  function repl(runner: () => void)
 }
 
-// This makes the file a module (required for global declarations)
 export {};`
 }
 

@@ -14,11 +14,11 @@ async function readEnv(envFilePath: string | undefined): Promise<[boolean, Recor
         return [true, {}]
     }
     let env: Record<string, string> = {};
+    //change to use vscode.filesystem
     try {
-        if (fs.existsSync(envFilePath)) {
-            const envContent = fs.readFileSync(envFilePath, 'utf-8');
-            env = dotenv.parse(envContent);
-        }
+        const file = await vscode.workspace.openTextDocument(envFilePath);
+        const envContent = file.getText();
+        env = dotenv.parse(envContent);
     } catch (e) {
         appendLine(`⚠️ Failed to load env file: ${e}`);
         return [false, {}]
