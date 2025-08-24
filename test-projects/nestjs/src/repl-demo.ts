@@ -28,7 +28,8 @@ async function replExample(a: number) {
         console.log(`sum123213? ${sum123213}`);
     })
     get(AppService).getHello();
-    let no = 23424;
+    
+    let no = 2342343424;
     console.log(`no? ${no}`)
     var sdf = "asdff"
 }

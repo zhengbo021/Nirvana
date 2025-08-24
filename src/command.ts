@@ -9,8 +9,8 @@ export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
     ["Nirvana.stopRepl", stopRepl],
     ["Nirvana.openOutput", openReplOutput],
-    ["Nirvana.configuration", showConfigurationOptions],
-    ["Nirvana.executeCode", executeCode]
+    ["Nirvana.executeCode", executeCode],
+    ["Nirvana.configuration", showConfigurationOptions]
 ];
 
 async function showProjectTypeOptions(): Promise<ProjectType> {

@@ -3,6 +3,8 @@ import * as path from 'path';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { appendLine } from '../nirvanaOutput'
 import * as dotenv from 'dotenv'
+import * as config from '../configuration'
+import { convertLetAndConstToVar } from '../utils/tsSourceCodeUtils';
 
 export const PROJECT_TYPES = ["nestJs", "typescript", "javascript"] as const;
 export type ProjectType = typeof PROJECT_TYPES[number];
@@ -104,9 +106,23 @@ export function isReplRunning(): boolean {
     return repl !== null && !repl.killed;
 }
 
-export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
-    //make the code as one line
+async function parseCode(code: string) {
+    // First normalize line breaks
     code = code.replace(/\n/g, ' ');
+
+    // Apply convertLetAndConstToVar transformation if enabled
+    if (config.getConvertLetConstToVar()) {
+        const parsedCode = await convertLetAndConstToVar(code)
+        if (parsedCode != null) {
+            code = parsedCode;
+        }
+    }
+
+    return code;
+}
+
+export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
+    code = await parseCode(code);
     if (!repl) {
         appendLine("ℹ️ No running REPL to evaluate code.");
         throw new Error("REPL is not running.");

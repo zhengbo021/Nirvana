@@ -432,7 +432,8 @@ suite("Code Selection Tests", () => {
         const editor = new MockTextEditor(document, position);
 
         const result = await getExecutableCode(editor);
-        assert.strictEqual(result, "", "Should return empty string for empty file");
+        assert.notStrictEqual(result, null, "Result should not be null");
+        assert.strictEqual(result, "", `Should return empty string for empty file. actualResult: ${result}`);
     });
 
     test("Should handle cursor at end of file", async () => {
@@ -442,6 +443,6 @@ suite("Code Selection Tests", () => {
 
         const result = await getExecutableCode(editor);
         assert.ok(result, "Result should not be null");
-        assert.ok(result.includes("const test = 1;"), "Should extract the statement");
+        assert.ok(result.includes("const test = 1;"), `Should extract the statement.`);
     });
 });
