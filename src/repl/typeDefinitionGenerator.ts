@@ -69,7 +69,7 @@ async function ensureTypeScriptConfiguration(workspaceRoot: string) {
 
         // 确保包含我们的类型定义文件
         if (!tsconfig.include) {
-            tsconfig.include = ['src/**/*'];
+            tsconfig.include = ['**/**/*'];
         }
 
         const typeDefInclude = '.vscode/nirvana-types.d.ts';
@@ -78,7 +78,7 @@ async function ensureTypeScriptConfiguration(workspaceRoot: string) {
 
             // 确保也包含了源代码文件
             if (!tsconfig.include.some((pattern: string) => pattern.includes('src'))) {
-                tsconfig.include.unshift('src/**/*');
+                tsconfig.include.unshift('**/**/*');
             }
 
             fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), 'utf-8');
