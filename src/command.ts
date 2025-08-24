@@ -124,14 +124,12 @@ async function executeCode() {
         return;
     }
 
-    // 检查 REPL 是否已启动
     if (!repl.isReplRunning()) {
         vscode.window.showWarningMessage('REPL is not running. Please start the REPL first.');
         return;
     }
 
     try {
-        // 获取要执行的代码
         const codeToExecute = await getExecutableCode(editor);
 
         if (!codeToExecute || codeToExecute.trim().length === 0) {
@@ -139,17 +137,13 @@ async function executeCode() {
             return;
         }
 
-        // 高亮显示即将执行的代码
         highlightExecutableCode(editor, codeToExecute);
 
-        // 显示将要执行的代码（用于调试和用户确认）
         nirvanaOutput.show();
-        // 执行代码
         const result = await repl.replEval(codeToExecute);
         if (result) {
             nirvanaOutput.appendLine(result);
         }
-
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to execute code: ${error}`);
         nirvanaOutput.appendLine(`Error: ${error}`);
