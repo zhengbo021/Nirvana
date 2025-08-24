@@ -32,17 +32,27 @@
         "category": "Nirvana"
       },
       {
-        "command": "Nirvana.executeCode",
-        "title": "Execute Code in REPL",
+        "command": "Nirvana.configuration",
+        "title": "Configuration",
         "category": "Nirvana"
       }
     ],
+    "configuration": {
+      "title": "Nirvana",
+      "properties": {
+        "nirvana.convertLetConstToVar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Convert let/const to var when executing code"
+        }
+      }
+    },
     "keybindings": [
       {
-      "command": "Nirvana.executeCode",
-      "key": "ctrl+enter",
-      "mac": "ctrl+enter",
-      "when": "editorTextFocus && resourceExtname =~ /\\.(ts|js|tsx|jsx)$/"
+        "command": "Nirvana.executeCode",
+        "key": "ctrl+enter",
+        "mac": "ctrl+enter",
+        "when": "editorTextFocus && resourceExtname =~ /\\.(ts|js|tsx|jsx)$/"
       }
     ]
   },

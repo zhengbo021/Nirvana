@@ -6,11 +6,13 @@ import * as repl from '../repl/repl';
 import * as nestJsTypeGenerator from '../repl/typeDefinitionGenerator'
 suite('command tests', () => {
     test('commands should be registered', () => {
-        assert.strictEqual(cmd.commands.length, 4);
+        assert.strictEqual(cmd.commands.length, 5);
         assert.strictEqual(cmd.commands[0][0], "Nirvana.startRepl");
         assert.strictEqual(typeof cmd.commands[0][1], 'function');
         assert.strictEqual(cmd.commands[3][0], "Nirvana.executeCode");
         assert.strictEqual(typeof cmd.commands[3][1], 'function');
+        assert.strictEqual(cmd.commands[4][0], "Nirvana.configuration");
+        assert.strictEqual(typeof cmd.commands[4][1], 'function');
     });
 });
 

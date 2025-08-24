@@ -3,11 +3,13 @@ import { ProjectType } from './repl/repl';
 import * as repl from './repl/repl';
 import * as nestJsTypeGenerator from './repl/typeDefinitionGenerator'
 import * as nirvanaOutput from './nirvanaOutput'
-import { getExecutableCode, highlightExecutableCode } from './utils/codeSelector';
+import { showConfigurationOptions } from './configuration';
+import { getExecutableCode, highlightExecutableCode } from './utils/codeSelector'
 export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
     ["Nirvana.stopRepl", stopRepl],
     ["Nirvana.openOutput", openReplOutput],
+    ["Nirvana.configuration", showConfigurationOptions],
     ["Nirvana.executeCode", executeCode]
 ];
 
@@ -18,7 +20,6 @@ async function showProjectTypeOptions(): Promise<ProjectType> {
     });
     return selection as ProjectType;
 }
-
 
 async function askUserMainFile(projectType: ProjectType): Promise<string> {
     const files = await vscode.workspace.findFiles(

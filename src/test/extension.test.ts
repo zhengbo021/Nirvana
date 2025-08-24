@@ -18,6 +18,7 @@ suite('Extension Tests', () => {
 			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable,
+			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable
 		];
 
@@ -26,6 +27,7 @@ suite('Extension Tests', () => {
 		registerCommandStub.onCall(1).returns(mockDisposables[1]);
 		registerCommandStub.onCall(2).returns(mockDisposables[2]);
 		registerCommandStub.onCall(3).returns(mockDisposables[3]);
+		registerCommandStub.onCall(4).returns(mockDisposables[4]);
 
 		// Create a mock context with a subscriptions array we can spy on
 		const mockSubscriptions: vscode.Disposable[] = [];
@@ -59,7 +61,8 @@ suite('Extension Tests', () => {
 			"Nirvana.startRepl",
 			"Nirvana.stopRepl",
 			"Nirvana.openOutput",
-			"Nirvana.executeCode"
+			"Nirvana.executeCode",
+			"Nirvana.configuration"
 		];
 
 		// Check that registerCommand was called for each expected command
@@ -108,7 +111,7 @@ suite('Extension Tests', () => {
 		extension.activate(context);
 
 		// Assert: verify the correct number of items were added to subscriptions
-		assert.strictEqual(context.subscriptions.length, 4, 'Should have 4 disposables in subscriptions');
+		assert.strictEqual(context.subscriptions.length, 5, 'Should have 5 disposables in subscriptions');
 
 		// Verify each subscription is a disposable with a dispose method
 		context.subscriptions.forEach((disposable, index) => {

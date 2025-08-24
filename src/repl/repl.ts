@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { appendLine } from '../nirvanaOutput'
-import * as fs from 'fs';
 import * as dotenv from 'dotenv'
 
 export const PROJECT_TYPES = ["nestJs", "typescript", "javascript"] as const;
