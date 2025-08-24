@@ -30,6 +30,19 @@
         "command": "Nirvana.openOutput",
         "title": "Open repl output",
         "category": "Nirvana"
+      },
+      {
+        "command": "Nirvana.executeCode",
+        "title": "Execute Code in REPL",
+        "category": "Nirvana"
+      }
+    ],
+    "keybindings": [
+      {
+      "command": "Nirvana.executeCode",
+      "key": "ctrl+enter",
+      "mac": "ctrl+enter",
+      "when": "editorTextFocus && resourceExtname =~ /\\.(ts|js|tsx|jsx)$/"
       }
     ]
   },
@@ -51,10 +64,10 @@
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.32.0",
-    "sinon": "^21.0.0",
-    "typescript": "^5.9.2"
+    "sinon": "^21.0.0"
   },
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "dotenv": "^17.2.1",
+    "typescript": "^5.9.2"
   }
 }

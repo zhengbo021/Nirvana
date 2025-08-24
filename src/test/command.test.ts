@@ -6,9 +6,11 @@ import * as repl from '../repl/repl';
 import * as nestJsTypeGenerator from '../repl/typeDefinitionGenerator'
 suite('command tests', () => {
     test('commands should be registered', () => {
-        assert.strictEqual(cmd.commands.length, 3);
+        assert.strictEqual(cmd.commands.length, 4);
         assert.strictEqual(cmd.commands[0][0], "Nirvana.startRepl");
         assert.strictEqual(typeof cmd.commands[0][1], 'function');
+        assert.strictEqual(cmd.commands[3][0], "Nirvana.executeCode");
+        assert.strictEqual(typeof cmd.commands[3][1], 'function');
     });
 });
 
@@ -106,7 +108,7 @@ suite('start repl tests', () => {
         showQuickPickStub.onCall(1).resolves({
             label: 'src/main.ts',
             uri: vscode.Uri.file('/test/workspace/src/main.ts')
-        }); 
+        });
         showQuickPickStub.onCall(2).resolves(undefined); // User cancelled
         await startReplCmd();
         assert.strictEqual(showQuickPickStub.callCount, 3);

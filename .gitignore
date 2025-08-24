@@ -10,3 +10,4 @@ test-projects/nestjs/.vscode
 .vscode/extensions.json
 .vscode/launch.json
 .vscode/settings.json
+test-projects/.vscode

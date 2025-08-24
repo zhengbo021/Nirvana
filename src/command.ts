@@ -3,11 +3,12 @@ import { ProjectType } from './repl/repl';
 import * as repl from './repl/repl';
 import * as nestJsTypeGenerator from './repl/typeDefinitionGenerator'
 import * as nirvanaOutput from './nirvanaOutput'
-
+import { getExecutableCode, highlightExecutableCode } from './utils/codeSelector';
 export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
     ["Nirvana.stopRepl", stopRepl],
-    ["Nirvana.openOutput", openReplOutput]
+    ["Nirvana.openOutput", openReplOutput],
+    ["Nirvana.executeCode", executeCode]
 ];
 
 async function showProjectTypeOptions(): Promise<ProjectType> {
@@ -114,6 +115,45 @@ async function stopRepl() {
 
 async function openReplOutput() {
     vscode.window.showInformationMessage("REPL output opened");
+}
+
+async function executeCode() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showWarningMessage('No active editor found');
+        return;
+    }
+
+    // 检查 REPL 是否已启动
+    if (!repl.isReplRunning()) {
+        vscode.window.showWarningMessage('REPL is not running. Please start the REPL first.');
+        return;
+    }
+
+    try {
+        // 获取要执行的代码
+        const codeToExecute = await getExecutableCode(editor);
+
+        if (!codeToExecute || codeToExecute.trim().length === 0) {
+            vscode.window.showWarningMessage('No code found to execute');
+            return;
+        }
+
+        // 高亮显示即将执行的代码
+        highlightExecutableCode(editor, codeToExecute);
+
+        // 显示将要执行的代码（用于调试和用户确认）
+        nirvanaOutput.show();
+        // 执行代码
+        const result = await repl.replEval(codeToExecute);
+        if (result) {
+            nirvanaOutput.appendLine(result);
+        }
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to execute code: ${error}`);
+        nirvanaOutput.appendLine(`Error: ${error}`);
+    }
 }
 
 export function registerCommands(context: vscode.ExtensionContext) {

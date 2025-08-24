@@ -4,27 +4,33 @@
 import { AppService } from './app.service';
 
 // 完整的示例 (这些应该不会报 TypeScript 错误)
-async function replExample() {
+async function replExample(a: number) {
     // 获取服务实例
     // const appService = app.get(AppService);
     // 调用方法
     // const message = appService.getHello();
     // console.log(message);
     // 或者直接调用
-    const directResult = app.get(AppService).getHello();
     // console.log(directResult);
 
-    //run current line: cmd+enter.
-    //or run selected code: first selected and enter cmd+enter
-    //or run the code inside the repl block: write code inside the block and enter the ) of the repl
-    repl(() => {
-        // 获取服务实例
-        const appService = app.get(AppService);
-        // 调用方法
-        const message = appService.getHello();
-        console.log(message);
-        // 或者直接调用
-        const directResult = app.get(AppService).getHello();
-        console.log(directResult);
+
+    //把这个代码修改下，让它符合这个需求，当用户按下CMD+ENTER, 返回最匹配的可执行代码块。  
+    const sum = 1 + 1;
+    console.log(`sum? ${sum}`)
+    //如果在下方表达式中的任一一行按下按钮，应该执行整个表达式.
+    var x = {
+        a: 1234234,
+        b: 234234,
+        c: 3
+    }
+    comment(() => { 
+        var sum123213 = x.a + x.b + x.c;
+        console.log(`sum123213? ${sum123213}`);
     })
+    get(AppService).getHello();
+    let no = 23424;
+    console.log(`no? ${no}`)
+    var sdf = "asdff"
 }
+
+async function name(params: string) {}

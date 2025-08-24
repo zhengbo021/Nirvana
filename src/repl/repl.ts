@@ -101,6 +101,10 @@ export function stopRepl() {
     }
 }
 
+export function isReplRunning(): boolean {
+    return repl !== null && !repl.killed;
+}
+
 export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
     if (!repl) {
         appendLine("ℹ️ No running REPL to evaluate code.");

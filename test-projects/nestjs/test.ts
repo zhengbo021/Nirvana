@@ -1,2 +1,4 @@
 import { AppService } from "src/app.service";
-app.get(AppService).getHello();
+comment(() => { 
+    const test = get(AppService).getHello();
+})
