@@ -14,7 +14,6 @@ async function readEnv(envFilePath: string | undefined): Promise<[boolean, Recor
         return [true, {}]
     }
     let env: Record<string, string> = {};
-    //change to use vscode.filesystem
     try {
         const file = await vscode.workspace.openTextDocument(envFilePath);
         const envContent = file.getText();

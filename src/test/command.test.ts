@@ -3,7 +3,7 @@ import * as cmd from '../command';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as repl from '../repl/repl';
-
+import * as nestJsTypeGenerator from '../repl/typeDefinitionGenerator'
 suite('command tests', () => {
     test('commands should be registered', () => {
         assert.strictEqual(cmd.commands.length, 3);
@@ -47,7 +47,6 @@ suite('start repl tests', () => {
         startReplStub.resolves([true, undefined]);
 
         // Mock the type generator
-        const nestJsTypeGenerator = require('../services/typeDefinitionGenerator');
         generateTypeDefinitionsStub = sinon.stub(nestJsTypeGenerator, 'generateTypeDefinitions');
         generateTypeDefinitionsStub.resolves();
     });
@@ -206,7 +205,6 @@ suite('start repl tests', () => {
         // Verify the flow stopped after main file selection cancellation
         assert.strictEqual(showQuickPickStub.callCount, 2); // Project type + main file
         assert.strictEqual(showOpenDialogStub.callCount, 0);
-        // No env file selection should occur
     });
 
     test(`Should start the REPL successfully`, async () => {

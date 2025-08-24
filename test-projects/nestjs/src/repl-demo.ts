@@ -11,7 +11,7 @@ async function replExample() {
     // const message = appService.getHello();
     // console.log(message);
     // 或者直接调用
-    // const directResult = app.get(AppService).getHello();
+    const directResult = app.get(AppService).getHello();
     // console.log(directResult);
 
     //run current line: cmd+enter.

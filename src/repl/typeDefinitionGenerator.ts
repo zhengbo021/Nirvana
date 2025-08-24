@@ -14,14 +14,15 @@ export async function generateTypeDefinitions(workspaceRoot: string, projectType
 
     const typeDefsPath = buildTypeDefsPath(workspaceRoot);
     try {
-        // 确保 .vscode 目录存在
         const vscodeDir = path.dirname(typeDefsPath);
-        if (!fs.existsSync(vscodeDir)) {
-            fs.mkdirSync(vscodeDir, { recursive: true });
+        const vscodeDirUri = vscode.Uri.file(vscodeDir);
+        const folderExists = await vscode.workspace.fs.stat(vscodeDirUri).then(() => true, () => false);
+        if (!folderExists) {
+            await vscode.workspace.fs.createDirectory(vscodeDirUri);
         }
 
         const typeDefinitions = buildTypeDefinitions();
-        fs.writeFileSync(typeDefsPath, typeDefinitions, 'utf-8');
+        await vscode.workspace.fs.writeFile(vscode.Uri.file(typeDefsPath), Buffer.from(typeDefinitions, 'utf-8'));
         await ensureTypeScriptConfiguration(workspaceRoot);
     } catch (error) {
         console.error('Error generating type definitions:', error);
@@ -33,7 +34,6 @@ export async function cleanup(workspaceRoot: string) {
     try {
         if (fs.existsSync(typeDefsPath)) {
             fs.unlinkSync(typeDefsPath);
-            await vscode.commands.executeCommand('typescript.reloadProjects');
         }
     } catch (error) {
         console.error('Error cleaning up type definitions:', error);
@@ -43,14 +43,8 @@ export async function cleanup(workspaceRoot: string) {
 function buildTypeDefinitions(): string {
     return `
 declare global {
-  interface NirvanaAppContext {
-    get<T>(serviceClass: new (...args: any[]) => T): T;
-  }
-
-  const app: NirvanaAppContext;
-
   function get<T>(serviceClass: new (...args: any[]) => T): T;
-  function repl(runner: () => void)
+  function comment(runner: () => void)
 }
 
 export {};`
@@ -77,7 +71,7 @@ async function ensureTypeScriptConfiguration(workspaceRoot: string) {
             tsconfig.include.push(typeDefInclude);
 
             // 确保也包含了源代码文件
-            if (!tsconfig.include.some((pattern: string) => pattern.includes('src'))) {
+            if (!tsconfig.include.some((pattern: string) => pattern.includes('**/**'))) {
                 tsconfig.include.unshift('**/**/*');
             }
 
