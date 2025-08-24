@@ -32,5 +32,3 @@ async function replExample(a: number) {
     console.log(`no? ${no}`)
     var sdf = "asdff"
 }
-
-async function name(params: string) {}

@@ -106,6 +106,8 @@ export function isReplRunning(): boolean {
 }
 
 export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
+    //make the code as one line
+    code = code.replace(/\n/g, ' ');
     if (!repl) {
         appendLine("ℹ️ No running REPL to evaluate code.");
         throw new Error("REPL is not running.");
