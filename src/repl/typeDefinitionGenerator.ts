@@ -1,12 +1,17 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ProjectType } from './repl';
 
 function buildTypeDefsPath(workspaceRoot: string): string {
     return path.join(workspaceRoot, '.vscode', 'nirvana-types.d.ts');
 }
 
-export async function generateTypeDefinitions(workspaceRoot: string): Promise<void> {
+export async function generateTypeDefinitions(workspaceRoot: string, projectType: ProjectType): Promise<void> {
+    if (projectType != "nestJs") {
+        return;
+    }
+
     const typeDefsPath = buildTypeDefsPath(workspaceRoot);
     try {
         // 确保 .vscode 目录存在

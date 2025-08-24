@@ -91,7 +91,7 @@ async function startRepl() {
 
     const rootPath = workspaceFolders[0].uri;
     try {
-        await nestJsTypeGenerator.generateTypeDefinitions(rootPath.fsPath);
+        await nestJsTypeGenerator.generateTypeDefinitions(rootPath.fsPath, projectType);
         const rs = await repl.startRepl(rootPath.fsPath, projectType, [mainFile], envFile == "None" ? undefined : envFile);
         if (!rs[0]) {
             vscode.window.showErrorMessage(`Failed to start REPL for ${mainFile}: ${rs[1]}`);
