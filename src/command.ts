@@ -3,9 +3,36 @@ import { ProjectType } from './repl/repl';
 import * as repl from './repl/repl';
 import * as nestJsTypeGenerator from './repl/typeDefinitionGenerator'
 import * as nirvanaOutput from './nirvanaOutput'
-import { showConfigurationOptions } from './configuration';
+import { showConfigurationOptions, getAutoImportDependencies, getAutoImportCurrentFile } from './configuration';
 import { getExecutableCode, highlightExecutableCode } from './utils/codeSelector'
 import { showInlineResult, showInlineError, getCodeExecutionRange, clearInlineResults, clearAllInlineResults } from './utils/inlineResults'
+import { analyzeDependencies, convertToReplImports } from './utils/dependencyAnalyzer'
+
+/**
+ * 生成当前文件的导入语句，确保方法可用且是最新版本
+ */
+function generateCurrentFileImport(currentFilePath: string): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        return '';
+    }
+
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    let relativePath = currentFilePath.replace(workspaceRoot, '');
+
+    // 确保路径以 ./ 开头，并移除文件扩展名
+    if (relativePath.startsWith('/')) {
+        relativePath = '.' + relativePath;
+    }
+    relativePath = relativePath.replace(/\.(ts|js)$/, '');
+
+    // 生成缓存清理和导入语句
+    const cacheClearing = `try { delete require.cache[require.resolve('${relativePath}')]; } catch (e) {}`;
+    const importStatement = `const __currentFile = require('${relativePath}'); Object.keys(__currentFile).forEach(key => { if (key !== 'default') global[key] = __currentFile[key]; });`;
+
+    return `${cacheClearing}\n${importStatement}\n`;
+}
+
 export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
     ["Nirvana.stopRepl", stopRepl],
@@ -131,6 +158,9 @@ async function executeCode() {
         return;
     }
 
+    // 保存用户按下 Ctrl+Enter 时的光标位置
+    const cursorPosition = editor.selection.active;
+
     try {
         const codeToExecute = await getExecutableCode(editor);
 
@@ -139,26 +169,73 @@ async function executeCode() {
             return;
         }
 
-        const executionRange = getCodeExecutionRange(editor, codeToExecute);
+        const executionRange = getCodeExecutionRange(editor, codeToExecute, cursorPosition);
+        highlightExecutableCode(editor, codeToExecute, cursorPosition, executionRange || undefined);
 
-        highlightExecutableCode(editor, codeToExecute);
+        // 构建最终执行的代码
+        let finalCode = codeToExecute;
+        let hasDynamicImports = false;
+        let importInfo = '';
 
-        const result = await repl.replEval(codeToExecute);
+        let importStatements = ""
+        // 检查是否启用了自动导入功能
+        if (getAutoImportDependencies()) {
+            // 分析依赖并生成导入语句
+            const dependencyAnalysis = await analyzeDependencies(editor.document, codeToExecute);
+            importStatements = convertToReplImports(dependencyAnalysis.requiresImports, editor.document.uri.fsPath);
+
+            if (dependencyAnalysis.requiresImports.length > 0) {
+                importInfo = dependencyAnalysis.requiresImports.map(i => i.moduleName).join(', ');
+            }
+        }
+
+        // 自动导入当前文件以确保方法可用且是最新版本
+        if (getAutoImportCurrentFile()) {
+            const currentFileImport = generateCurrentFileImport(editor.document.uri.fsPath);
+            if (currentFileImport) {
+                importStatements = currentFileImport + importStatements;
+                hasDynamicImports = true;
+                importInfo = importInfo ? `current file, ${importInfo}` : 'current file';
+            }
+        }
+
+        if (importStatements.trim().length > 0) {
+            hasDynamicImports = true;
+
+            // 检查是否导入了可能有副作用的本地模块
+            const localImports = importInfo.includes('current file') || importInfo.includes('./') || importInfo.includes('../');
+
+            nirvanaOutput.appendLine(`📦 Auto-importing dependencies: ${importInfo}`);
+
+            if (localImports) {
+                nirvanaOutput.appendLine(`⚠️  Warning: Importing local modules may execute initialization code`);
+                nirvanaOutput.appendLine(`   If you see unexpected output, consider separating export definitions from execution logic`);
+            }
+
+            nirvanaOutput.appendLine(`🔗 Generated imports:\n${importStatements}`);
+        }
+
+        nirvanaOutput.appendLine(`finalCode: ${finalCode} \nimportStatment: ${importStatements}`)
+        const result = await repl.replEval(finalCode, importStatements);
         nirvanaOutput.appendLine(`Result: ${result}, execution range: ${JSON.stringify(executionRange)}`);
+
         if (executionRange) {
-            showInlineResult(editor, executionRange, result);
+            showInlineResult(editor, executionRange, result, cursorPosition);
         }
 
         if (result) {
             nirvanaOutput.appendLine(`> ${codeToExecute}`);
+            if (hasDynamicImports) {
+                nirvanaOutput.appendLine(`📦 With auto-imports for: ${importInfo}`);
+            }
             nirvanaOutput.appendLine(result);
         }
     } catch (error: any) {
         const codeToExecute = await getExecutableCode(editor);
-        const executionRange = codeToExecute ? getCodeExecutionRange(editor, codeToExecute) : null;
+        const executionRange = codeToExecute ? getCodeExecutionRange(editor, codeToExecute, cursorPosition) : null;
 
         if (executionRange) {
-            showInlineError(editor, executionRange, error.message || error.toString());
+            showInlineError(editor, executionRange, error.message || error.toString(), cursorPosition);
         }
 
         vscode.window.showErrorMessage(`Failed to execute code: ${error}`);

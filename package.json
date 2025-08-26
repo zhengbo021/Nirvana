@@ -44,6 +44,16 @@
           "type": "boolean",
           "default": true,
           "description": "Convert let/const to var when executing code"
+        },
+        "nirvana.autoImportDependencies": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically import external dependencies used in code blocks"
+        },
+        "nirvana.autoImportCurrentFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically import current file to make local functions available in REPL"
         }
       }
     },

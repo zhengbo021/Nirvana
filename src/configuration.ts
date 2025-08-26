@@ -42,6 +42,54 @@ export async function toggleConvertLetConstToVar(): Promise<boolean> {
 }
 
 /**
+ * Get the autoImportDependencies setting
+ */
+export function getAutoImportDependencies(): boolean {
+    return getConfiguration().get<boolean>('autoImportDependencies', true);
+}
+
+/**
+ * Set the autoImportDependencies setting
+ */
+export async function setAutoImportDependencies(value: boolean, target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global): Promise<void> {
+    await getConfiguration().update('autoImportDependencies', value, target);
+}
+
+/**
+ * Toggle the autoImportDependencies setting
+ */
+export async function toggleAutoImportDependencies(): Promise<boolean> {
+    const currentValue = getAutoImportDependencies();
+    const newValue = !currentValue;
+    await setAutoImportDependencies(newValue);
+    return newValue;
+}
+
+/**
+ * Get the autoImportCurrentFile setting
+ */
+export function getAutoImportCurrentFile(): boolean {
+    return getConfiguration().get<boolean>('autoImportCurrentFile', true);
+}
+
+/**
+ * Set the autoImportCurrentFile setting
+ */
+export async function setAutoImportCurrentFile(value: boolean, target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global): Promise<void> {
+    await getConfiguration().update('autoImportCurrentFile', value, target);
+}
+
+/**
+ * Toggle the autoImportCurrentFile setting
+ */
+export async function toggleAutoImportCurrentFile(): Promise<boolean> {
+    const currentValue = getAutoImportCurrentFile();
+    const newValue = !currentValue;
+    await setAutoImportCurrentFile(newValue);
+    return newValue;
+}
+
+/**
  * Get all available configuration options
  */
 export function getConfigurationOptions(): ConfigurationOption[] {
@@ -52,6 +100,20 @@ export function getConfigurationOptions(): ConfigurationOption[] {
             description: 'Convert let/const to var when executing code',
             getCurrentValue: () => getConvertLetConstToVar(),
             toggle: () => toggleConvertLetConstToVar()
+        },
+        {
+            key: 'autoImportDependencies',
+            label: 'autoImportDependencies',
+            description: 'Automatically import external dependencies used in code blocks',
+            getCurrentValue: () => getAutoImportDependencies(),
+            toggle: () => toggleAutoImportDependencies()
+        },
+        {
+            key: 'autoImportCurrentFile',
+            label: 'autoImportCurrentFile',
+            description: 'Automatically import current file to make local functions available in REPL',
+            getCurrentValue: () => getAutoImportCurrentFile(),
+            toggle: () => toggleAutoImportCurrentFile()
         }
         // Add more configuration options here in the future
     ];

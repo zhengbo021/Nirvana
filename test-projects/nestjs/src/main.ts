@@ -8,5 +8,7 @@ async function bootstrap() {
 bootstrap();
 
 export function test() {
-  console.log(`sdsafsf`)
+  console.log(`3`)
 }
+
+test()

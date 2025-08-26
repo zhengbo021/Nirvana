@@ -1,9 +1,10 @@
 // 这是一个演示文件，用于测试 Nirvana 的自动补全功能
 // 当您输入 app.get( 时应该会看到 AppService 的自动补全
 // 当您输入 app.get(AppService). 时应该会看到方法的自动补全
+import { utils } from 'mocha';
 import { AppService } from './app.service';
 import { test } from './main';
-
+import { testUtils } from './utils';
 // 完整的示例 (这些应该不会报 TypeScript 错误)
 async function replExample(a: number) {
     // 获取服务实例
@@ -24,14 +25,16 @@ async function replExample(a: number) {
         b: 234234,
         c: 3
     }
-    comment(() => { 
+    comment(() => {
         var sum123213 = x.a + x.b + x.c;
         console.log(`sum123213? ${sum123213}`);
     })
     get(AppService).getHello();
-   
+
     //执行这种类型定义没有输出结果，是因为并不会有任何输出，正常而言，也应该显示一个空白的输出，需要给执行的代码加上结束标志，比如console.log('CODE_EXECUTION_END')
-    let no = 2342343424;
+    const no = "sdfffffffffsfd";
     console.log(`no? ${no}`)
-    var sdf = "asdff" 
+    const sdf = "asdff"
+    test()
+    testUtils("John")
 }

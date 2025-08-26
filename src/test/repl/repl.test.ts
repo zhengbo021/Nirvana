@@ -63,21 +63,21 @@ suite("NestJs REPL eval tests", function () {
     test("Should set env variables successfully", async function () {
         this.timeout(10000)
         assert.ok(replStarted, "REPL should have started");
-        const res = await repl.replEval("process.env.TEST", 5000);
+        const res = await repl.replEval("process.env.TEST", "", 5000);
         assert.strictEqual(res.trim(), "'testenv'");
     });
 
     test("Should eval successfully", async function () {
         this.timeout(10000);
         assert.ok(replStarted, "REPL should have started");
-        const res = await repl.replEval("1 + 1", 5000);
+        const res = await repl.replEval("1 + 1", "", 5000);
         assert.strictEqual(res.trim(), "2");
     });
 
     test('Should able to eval on service.', async function () {
         this.timeout(10000);
         assert.ok(replStarted, "REPL should have started");
-        const rs = await repl.replEval("get(AppService).getHello()");
+        const rs = await repl.replEval("get(AppService).getHello()", "");
         assert.strictEqual(rs.trim(), "'Hello REPL!'");
     });
 
@@ -86,7 +86,7 @@ suite("NestJs REPL eval tests", function () {
         assert.ok(replStarted, "REPL should have started");
 
         try {
-            await repl.replEval("let timeout = setTimeout(() => { console.log('done'); }, 10000);", 3000, false);
+            await repl.replEval("let timeout = setTimeout(() => { console.log('done'); }, 10000);", "",3000, false);
             assert.fail("Expected timeout error");
         } catch (err: any) {
             assert.ok(err.message.includes("REPL evaluation timed out."));
@@ -131,7 +131,7 @@ suite("NestJs stop REPL tests", () => {
         repl.stopRepl();
 
         try {
-            await repl.replEval("1 + 1");
+            await repl.replEval("1 + 1","");
         } catch (err: any) {
             assert.ok(err.message.includes("REPL is not running."), "Expected REPL not running message");
             return;

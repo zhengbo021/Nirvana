@@ -121,18 +121,22 @@ async function parseCode(code: string, appendEvalDoneSymbol: boolean) {
     if (!code.trim().endsWith(';')) {
         code += ';';
     }
-    
+
     if (appendEvalDoneSymbol) {
         code += `\nconsole.log('${replEvalDoneSymbol}');`;
     }
     return code;
 }
 
-export async function replEval(code: string, timeoutMs: number = 5000, appendEvalDoneSymbol: boolean = true): Promise<string> {
-    code = await parseCode(code, appendEvalDoneSymbol);
+export async function replEval(code: string, importStatements: string, timeoutMs: number = 5000, appendEvalDoneSymbol: boolean = true): Promise<string> {
     if (!repl) {
         appendLine("ℹ️ No running REPL to evaluate code.");
         throw new Error("REPL is not running.");
+    }
+    code = await parseCode(code, appendEvalDoneSymbol);
+    if (importStatements.trim().length > 0) {
+        await replEval(importStatements, "")
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
 
     return new Promise((resolve, reject) => {
@@ -227,7 +231,7 @@ async function waitForReplReady(maxWaitTime: number = 15000): Promise<boolean> {
 
     while (Date.now() - startTime < maxWaitTime) {
         try {
-            const result = await replEval('console.log("REPL READY")', 3000);
+            const result = await replEval('console.log("REPL READY")', "", 3000);
             if (result && result.includes("REPL READY")) {
                 appendLine("✅ REPL is ready!");
                 return true;
