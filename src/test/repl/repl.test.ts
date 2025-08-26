@@ -86,7 +86,7 @@ suite("NestJs REPL eval tests", function () {
         assert.ok(replStarted, "REPL should have started");
 
         try {
-            await repl.replEval("let timeout = setTimeout(() => { console.log('done'); }, 10000);", 3000);
+            await repl.replEval("let timeout = setTimeout(() => { console.log('done'); }, 10000);", 3000, false);
             assert.fail("Expected timeout error");
         } catch (err: any) {
             assert.ok(err.message.includes("REPL evaluation timed out."));

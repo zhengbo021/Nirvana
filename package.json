@@ -42,7 +42,7 @@
       "properties": {
         "nirvana.convertLetConstToVar": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Convert let/const to var when executing code"
         }
       }

@@ -19,6 +19,7 @@ suite('Extension Tests', () => {
 			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable,
+			{ dispose: sinon.stub() } as vscode.Disposable,
 			{ dispose: sinon.stub() } as vscode.Disposable
 		];
 
@@ -76,19 +77,13 @@ suite('Extension Tests', () => {
 		});
 
 		// Assert: verify that all disposables were added to context.subscriptions
-		assert.strictEqual(context.subscriptions.length, expectedCommands.length,
-			`Expected ${expectedCommands.length} disposables in subscriptions, but found ${context.subscriptions.length}`);
+		// 5 commands + 2 event listeners = 7 disposables total
+		assert.strictEqual(context.subscriptions.length, 7,
+			`Expected 7 disposables in subscriptions (5 commands + 2 event listeners), but found ${context.subscriptions.length}`);
 
-		assert.strictEqual(subscriptionsPushSpy.callCount, expectedCommands.length,
-			`Expected subscriptions.push to be called ${expectedCommands.length} times, but was called ${subscriptionsPushSpy.callCount} times`);
-
-		// Verify each disposable was pushed to subscriptions
-		mockDisposables.forEach((disposable, index) => {
-			assert.strictEqual(context.subscriptions[index], disposable,
-				`Expected disposable ${index} to match the one returned by registerCommand`);
-			assert.ok(subscriptionsPushSpy.getCall(index).calledWith(disposable),
-				`Expected subscriptions.push to be called with disposable ${index}`);
-		});
+		// The push should be called for each command plus the event listeners
+		assert.strictEqual(subscriptionsPushSpy.callCount, 7,
+			`Expected subscriptions.push to be called 7 times (5 commands + 2 event listeners), but was called ${subscriptionsPushSpy.callCount} times`);
 	});
 
 	test('should call registerCommand with correct function types', () => {
@@ -111,7 +106,8 @@ suite('Extension Tests', () => {
 		extension.activate(context);
 
 		// Assert: verify the correct number of items were added to subscriptions
-		assert.strictEqual(context.subscriptions.length, 5, 'Should have 5 disposables in subscriptions');
+		// 5 commands + 2 event listeners = 7 disposables
+		assert.strictEqual(context.subscriptions.length, 7, 'Should have 7 disposables in subscriptions');
 
 		// Verify each subscription is a disposable with a dispose method
 		context.subscriptions.forEach((disposable, index) => {

@@ -5,6 +5,7 @@ import * as nestJsTypeGenerator from './repl/typeDefinitionGenerator'
 import * as nirvanaOutput from './nirvanaOutput'
 import { showConfigurationOptions } from './configuration';
 import { getExecutableCode, highlightExecutableCode } from './utils/codeSelector'
+import { showInlineResult, showInlineError, getCodeExecutionRange, clearInlineResults, clearAllInlineResults } from './utils/inlineResults'
 export const commands: [string, () => Promise<void>][] = [
     ["Nirvana.startRepl", startRepl],
     ["Nirvana.stopRepl", stopRepl],
@@ -138,14 +139,28 @@ async function executeCode() {
             return;
         }
 
+        const executionRange = getCodeExecutionRange(editor, codeToExecute);
+
         highlightExecutableCode(editor, codeToExecute);
 
-        nirvanaOutput.show();
         const result = await repl.replEval(codeToExecute);
+        nirvanaOutput.appendLine(`Result: ${result}, execution range: ${JSON.stringify(executionRange)}`);
+        if (executionRange) {
+            showInlineResult(editor, executionRange, result);
+        }
+
         if (result) {
+            nirvanaOutput.appendLine(`> ${codeToExecute}`);
             nirvanaOutput.appendLine(result);
         }
-    } catch (error) {
+    } catch (error: any) {
+        const codeToExecute = await getExecutableCode(editor);
+        const executionRange = codeToExecute ? getCodeExecutionRange(editor, codeToExecute) : null;
+
+        if (executionRange) {
+            showInlineError(editor, executionRange, error.message || error.toString());
+        }
+
         vscode.window.showErrorMessage(`Failed to execute code: ${error}`);
         nirvanaOutput.appendLine(`Error: ${error}`);
     }

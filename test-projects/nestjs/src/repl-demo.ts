@@ -2,6 +2,7 @@
 // 当您输入 app.get( 时应该会看到 AppService 的自动补全
 // 当您输入 app.get(AppService). 时应该会看到方法的自动补全
 import { AppService } from './app.service';
+import { test } from './main';
 
 // 完整的示例 (这些应该不会报 TypeScript 错误)
 async function replExample(a: number) {
@@ -28,8 +29,9 @@ async function replExample(a: number) {
         console.log(`sum123213? ${sum123213}`);
     })
     get(AppService).getHello();
-    
+   
+    //执行这种类型定义没有输出结果，是因为并不会有任何输出，正常而言，也应该显示一个空白的输出，需要给执行的代码加上结束标志，比如console.log('CODE_EXECUTION_END')
     let no = 2342343424;
     console.log(`no? ${no}`)
-    var sdf = "asdff"
+    var sdf = "asdff" 
 }

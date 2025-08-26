@@ -8,6 +8,7 @@ import { convertLetAndConstToVar } from '../utils/tsSourceCodeUtils';
 
 export const PROJECT_TYPES = ["nestJs", "typescript", "javascript"] as const;
 export type ProjectType = typeof PROJECT_TYPES[number];
+const replEvalDoneSymbol = "Nirvana REPL Eval Done:278ae102-8116-4724-84e9-7c7fc99017bb";
 
 let repl: null | ChildProcessWithoutNullStreams = null;
 async function readEnv(envFilePath: string | undefined): Promise<[boolean, Record<string, string>]> {
@@ -106,7 +107,7 @@ export function isReplRunning(): boolean {
     return repl !== null && !repl.killed;
 }
 
-async function parseCode(code: string) {
+async function parseCode(code: string, appendEvalDoneSymbol: boolean) {
     // First normalize line breaks
     code = code.replace(/\n/g, ' ');
 
@@ -117,12 +118,18 @@ async function parseCode(code: string) {
             code = parsedCode;
         }
     }
-
+    if (!code.trim().endsWith(';')) {
+        code += ';';
+    }
+    
+    if (appendEvalDoneSymbol) {
+        code += `\nconsole.log('${replEvalDoneSymbol}');`;
+    }
     return code;
 }
 
-export async function replEval(code: string, timeoutMs: number = 5000): Promise<string> {
-    code = await parseCode(code);
+export async function replEval(code: string, timeoutMs: number = 5000, appendEvalDoneSymbol: boolean = true): Promise<string> {
+    code = await parseCode(code, appendEvalDoneSymbol);
     if (!repl) {
         appendLine("ℹ️ No running REPL to evaluate code.");
         throw new Error("REPL is not running.");
@@ -151,13 +158,13 @@ export async function replEval(code: string, timeoutMs: number = 5000): Promise<
             const chunk = data.toString();
             output += chunk;
             const cleanOutput = extractResult(output);
-            const isComplete = cleanOutput.length != 0;
+            const isComplete = cleanOutput.includes(replEvalDoneSymbol);
             if (isComplete && !isResolved) {
                 isResolved = true;
                 clearTimeout(timeout);
                 repl?.stdout.removeListener('data', onData);
                 repl?.stderr.removeListener('data', onErrorData);
-                resolve(cleanOutput);
+                resolve(cleanOutput.replace(replEvalDoneSymbol, '').trim());
             }
         };
 
