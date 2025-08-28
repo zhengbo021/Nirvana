@@ -26,8 +26,25 @@ function generateCurrentFileImport(currentFilePath: string): string {
     }
     relativePath = relativePath.replace(/\.(ts|js)$/, '');
 
-    // 生成缓存清理和导入语句
-    const cacheClearing = `try { delete require.cache[require.resolve('${relativePath}')]; } catch (e) {}`;
+    // 生成递归缓存清理代码
+    const cacheClearing = `
+(function clearModuleCache(moduleName) {
+    try {
+        const resolvedPath = require.resolve(moduleName);
+        const module = require.cache[resolvedPath];
+        if (module && module.children) {
+            module.children.forEach(child => {
+                if (child.filename && child.filename.includes(process.cwd()) && 
+                    !child.filename.includes('node_modules')) {
+                    delete require.cache[child.filename];
+                }
+            });
+        }
+        delete require.cache[resolvedPath];
+    } catch (e) {
+    }
+})('${relativePath}');`.trim();
+
     const importStatement = `const __currentFile = require('${relativePath}'); Object.keys(__currentFile).forEach(key => { if (key !== 'default') global[key] = __currentFile[key]; });`;
 
     return `${cacheClearing}\n${importStatement}\n`;

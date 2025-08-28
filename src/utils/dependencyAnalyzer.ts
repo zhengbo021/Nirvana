@@ -218,6 +218,29 @@ function extractAllImports(sourceCode: string): ImportInfo[] {
 }
 
 /**
+ * 递归清理模块缓存及其依赖
+ */
+function generateCacheClearingCode(resolvedModuleName: string): string {
+    return `
+(function clearModuleCache(moduleName) {
+    try {
+        const resolvedPath = require.resolve(moduleName);
+        const module = require.cache[resolvedPath];
+        if (module && module.children) {
+            module.children.forEach(child => {
+                if (child.filename && child.filename.includes(process.cwd()) && 
+                    !child.filename.includes('node_modules')) {
+                    delete require.cache[child.filename];
+                }
+            });
+        }
+        delete require.cache[resolvedPath];
+    } catch (e) {
+    }
+})('${resolvedModuleName}');`.trim();
+}
+
+/**
  * 将导入语句转换为REPL兼容的导入语句
  * 优先使用普通的require，只有在必要时才使用动态import
  */
@@ -264,9 +287,8 @@ export function convertToReplImports(imports: ImportInfo[], currentFilePath?: st
                 resolvedModuleName = resolveModulePath(moduleName, currentFilePath);
             }
 
-            // 对于本地文件，需要先清理缓存以确保获取最新内容
-            // 使用 try-catch 来安全地清理缓存
-            importStatements.push(`try { delete require.cache[require.resolve('${resolvedModuleName}')]; } catch (e) {}`);
+            // 对于本地文件，需要递归清理缓存以确保获取最新内容
+            importStatements.push(generateCacheClearingCode(resolvedModuleName));
 
             // 然后进行正常的require
             switch (importType) {

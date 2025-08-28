@@ -54,8 +54,11 @@ const content = readFile('./test.txt');
         ];
 
         const result = convertToReplImports(imports);
-        const expectedResult = "try { delete require.cache[require.resolve('./main')]; } catch (e) {}\nconst { test } = require('./main');";
-        assert.strictEqual(result.trim(), expectedResult);
+
+        // Should include the new recursive cache clearing function
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./main')"), "Should include module path");
+        assert.ok(result.includes("const { test } = require('./main');"), "Should include require statement");
     });
 
     test("Should handle local TypeScript file imports with .ts extension", () => {
@@ -69,8 +72,11 @@ const content = readFile('./test.txt');
         ];
 
         const result = convertToReplImports(imports);
-        const expectedResult = "try { delete require.cache[require.resolve('./utils.ts')]; } catch (e) {}\nconst { helper } = require('./utils.ts');";
-        assert.strictEqual(result.trim(), expectedResult);
+
+        // Should include the new recursive cache clearing function
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./utils.ts')"), "Should include module path");
+        assert.ok(result.includes("const { helper } = require('./utils.ts');"), "Should include require statement");
     });
 
     test("Should resolve relative imports from src directory", () => {
@@ -86,8 +92,10 @@ const content = readFile('./test.txt');
         const currentFilePath = '/path/to/project/src/repl-demo.ts';
         const result = convertToReplImports(imports, currentFilePath);
 
-        const expectedResult = "try { delete require.cache[require.resolve('./src/main')]; } catch (e) {}\nconst { test } = require('./src/main');";
-        assert.strictEqual(result.trim(), expectedResult);
+        // Should include the new recursive cache clearing function and resolve path correctly
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./src/main')"), "Should resolve path correctly");
+        assert.ok(result.includes("const { test } = require('./src/main');"), "Should include require statement");
     }); test("Should not modify node module imports with path resolution", () => {
         const imports = [
             {
@@ -141,8 +149,10 @@ const content = readFile('./test.txt');
         const currentFilePath = '/path/to/project/src/main.ts';
         const result = convertToReplImports(imports, currentFilePath);
 
-        const expectedResult = "try { delete require.cache[require.resolve('./src/utils')]; } catch (e) {}\nconst Utils = require('./src/utils');";
-        assert.strictEqual(result.trim(), expectedResult);
+        // Should include the new recursive cache clearing function and resolve path correctly
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./src/utils')"), "Should resolve path correctly");
+        assert.ok(result.includes("const Utils = require('./src/utils');"), "Should include require statement");
     }); test("Should include cache clearing for local modules", () => {
         const imports = [
             {
@@ -156,9 +166,10 @@ const content = readFile('./test.txt');
         const currentFilePath = '/path/to/project/src/repl-demo.ts';
         const result = convertToReplImports(imports, currentFilePath);
 
-        // Should include cache clearing statement
-        assert.ok(result.includes("delete require.cache[require.resolve('./src/main')]"));
-        assert.ok(result.includes("const { test } = require('./src/main');"));
+        // Should include the new recursive cache clearing function
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./src/main')"), "Should resolve path correctly");
+        assert.ok(result.includes("const { test } = require('./src/main');"), "Should include require statement");
     });
 
     test("Should not include cache clearing for node modules", () => {
@@ -192,9 +203,10 @@ const content = readFile('./test.txt');
         const currentFilePath = '/path/to/project/src/repl-demo.ts';
         const result = convertToReplImports(imports, currentFilePath);
 
-        // Should include cache clearing and convert to require with destructuring
-        assert.ok(result.includes("delete require.cache[require.resolve('./src/utils')]"));
-        assert.ok(result.includes("const { testUtils } = require('./src/utils');"));
+        // Should include the new recursive cache clearing function and convert to require with destructuring
+        assert.ok(result.includes('clearModuleCache'), "Should include cache clearing function");
+        assert.ok(result.includes("('./src/utils')"), "Should resolve path correctly");
+        assert.ok(result.includes("const { testUtils } = require('./src/utils');"), "Should include require statement");
     });
 
     test("Should handle dynamic imports without destructuring", () => {

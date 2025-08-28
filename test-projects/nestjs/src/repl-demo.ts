@@ -4,7 +4,7 @@
 import { utils } from 'mocha';
 import { AppService } from './app.service';
 import { test } from './main';
-import { testUtils } from './utils';
+import { fromUtil } from './util';
 // 完整的示例 (这些应该不会报 TypeScript 错误)
 async function replExample(a: number) {
     // 获取服务实例
@@ -36,5 +36,5 @@ async function replExample(a: number) {
     console.log(`no? ${no}`)
     const sdf = "asdff"
     test()
-    testUtils("John")
+    fromUtil("John")
 }
