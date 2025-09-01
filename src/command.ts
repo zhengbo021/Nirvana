@@ -74,7 +74,7 @@ async function askUserWhichEnvFileToUse(
     return undefined;
   }
   appendNewLine(`.env file: ${workingDirectory}/${selected}`);
-  return workingDirectory + "/" + selected;
+  return selected === "None" ? "None" : workingDirectory + "/" + selected;
 }
 
 export async function startRepl() {
