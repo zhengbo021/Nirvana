@@ -4,8 +4,8 @@ import {
   getEnvFileNames,
   getValidTsFileNames,
 } from "./util/workingDirectoryUtils";
-import { DI } from "./repl";
-import * as repl from "./repl";
+import { DI } from "./repl/repl";
+import * as repl from "./repl/repl";
 
 const commands: Record<string, () => Promise<void>> = {
   "Nirvana.startRepl": startRepl,

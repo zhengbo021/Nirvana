@@ -20,3 +20,9 @@ export async function startRepl(
     message: "Repl started successfully",
   };
 }
+
+type ReplEvalContext = {
+  filesToImport: string[];
+};
+
+export async function replEval(code: string, context: ReplEvalContext) {}

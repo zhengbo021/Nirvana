@@ -1,9 +1,9 @@
 import vscode from "vscode";
 import Sinon from "sinon";
 import * as command from "../command";
-import * as repl from "../repl";
+import * as repl from "../repl/repl";
 import assert from "assert";
-import { ReplContext, ReplStartsDetails } from "../repl";
+import { ReplContext, ReplStartsDetails } from "../repl/repl";
 
 const nestJsProjectFolder =
   "/Users/zhengma/Desktop/code/nirvana/nirvana/test-projects/nestjs";
