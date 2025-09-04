@@ -1,0 +1,30 @@
+import { NestFactory } from '@nestjs/core';
+import { INestApplication } from '@nestjs/common';
+import { ###AppModule } from '###AppModulePath';
+declare const global: any;
+declare const module: any;
+async function bootstrap() {
+  try {
+    const app = await NestFactory.create(###AppModule);
+    app.useLogger(console);
+
+    // HMR setup
+    if (module.hot) {
+      module.hot.accept();
+      module.hot.dispose(() => app.close());
+    }
+
+    // Make app globally accessible for REPL
+    global.nestApplication = app;
+
+    // Initialize the app (don't call listen() - REPL handles that)
+    await app.init();
+
+    console.log('✅ NestJS application initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to bootstrap NestJS application:', error);
+    throw error;
+  }
+}
+
+bootstrap();

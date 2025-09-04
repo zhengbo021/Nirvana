@@ -3,7 +3,7 @@ import Sinon from "sinon";
 import * as command from "../command";
 import * as repl from "../repl/repl";
 import assert from "assert";
-import { ReplContext, ReplStartsDetails } from "../repl/repl";
+import { ReplContext, ReplStartsDetails } from "../repl/types";
 
 const nestJsProjectFolder =
   "/Users/zhengma/Desktop/code/nirvana/nirvana/test-projects/nestjs";

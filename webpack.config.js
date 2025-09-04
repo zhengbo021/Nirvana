@@ -3,6 +3,7 @@
 "use strict";
 
 const path = require("path");
+const CopyPlugin = require("copy-webpack-plugin");
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -21,6 +22,7 @@ const extensionConfig = {
   },
   externals: {
     vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
+    webpack: "commonjs webpack", // webpack should not be bundled into the extension
     // modules added here also need to be added in the .vscodeignore file
   },
   resolve: {
@@ -44,5 +46,19 @@ const extensionConfig = {
   infrastructureLogging: {
     level: "log", // enables logging required for problem matchers
   },
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        {
+          from: "src/repl/starters/nestjs/nestJsHmrEntry.ts.template",
+          to: "repl/starters/nestjs/nestJsHmrEntry.ts.template",
+        },
+        {
+          from: "src/repl/starters/nestjs/nestjsTypeDef.d.ts",
+          to: "repl/starters/nestjs/nestjsTypeDef.d.ts",
+        },
+      ],
+    }),
+  ],
 };
 module.exports = [extensionConfig];

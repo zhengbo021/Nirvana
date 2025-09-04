@@ -1,23 +1,41 @@
-export type DI = "NestJs" | "None" | "Other";
-export type ReplContext = {
-  workingDirectory: string;
-  diInUse: {
-    di: DI;
-    nestJsMainModule?: string;
-  };
-  envFilePath?: string;
-};
+import { DI, REPL, ReplContext, ReplStartsDetails } from "./types";
+import * as nestJsStarter from "./starters/nestjs/nestjsStarter";
+import { appendNewLine } from "../util/nirvanaOutput";
 
-export type ReplStartsDetails = {
-  suc: boolean;
-  message: string;
-};
+let repl: REPL = null as any;
+
+function getStarter(
+  context: ReplContext,
+): (context: ReplContext) => Promise<REPL> {
+  switch (context.diInUse.di) {
+    case "NestJs":
+      return nestJsStarter.start;
+    case "Other":
+      return async () => {
+        throw new Error("Not implemented");
+      };
+    case "None":
+      return async () => {
+        throw new Error("Not implemented");
+      };
+    default:
+      return async () => {
+        throw new Error("Not implemented");
+      };
+  }
+}
+
 export async function startRepl(
   context: ReplContext,
 ): Promise<ReplStartsDetails> {
+  const starter = getStarter(context);
+  const replInstance = await starter(context);
+  const [initResult, initError] = await replInstance.init();
+  appendNewLine(`Repl start result: ${initResult}, err: ${initError}`);
+  repl = replInstance as any;
   return {
-    suc: true,
-    message: "Repl started successfully",
+    suc: initResult === "OK",
+    message: initError ?? "Repl started successfully",
   };
 }
 

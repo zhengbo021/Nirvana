@@ -4,8 +4,10 @@ import {
   getEnvFileNames,
   getValidTsFileNames,
 } from "./util/workingDirectoryUtils";
-import { DI } from "./repl/repl";
 import * as repl from "./repl/repl";
+import { DI } from "./repl/types";
+
+let extensionContext: vscode.ExtensionContext;
 
 const commands: Record<string, () => Promise<void>> = {
   "Nirvana.startRepl": startRepl,
@@ -117,6 +119,7 @@ export async function startRepl() {
       nestJsMainModule: nestJsMainModulePath,
     },
     envFilePath: envFile === "None" ? undefined : envFile,
+    extensionPath: extensionContext?.extensionPath,
   });
   if (result.suc) {
     appendNewLine("Repl started successfully");
@@ -129,6 +132,7 @@ export async function startRepl() {
 }
 
 export function registerCommands(context: vscode.ExtensionContext) {
+  extensionContext = context;
   for (const commandName of Object.keys(commands)) {
     const runner = commands[commandName];
     const disposable = vscode.commands.registerCommand(commandName, runner);
