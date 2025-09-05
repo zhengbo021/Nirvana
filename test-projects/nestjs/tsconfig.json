@@ -20,9 +20,6 @@
   },
   "include": [
     ".nirvana/**/*",
-    "**/*",
-    ".nirvana/**/*",
-    ".nirvana/**/*",
-    ".nirvana/**/*"
+    "**/*"
   ]
 }
