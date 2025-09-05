@@ -1,5 +1,6 @@
 import { REPL, ReplContext } from "../../types";
 import fs from "fs";
+import json5 from "json5";
 
 import path from "path";
 import { appendNewLine } from "../../../util/nirvanaOutput";
@@ -39,10 +40,16 @@ async function createHrmEntryFile(
 
   const template = fs.readFileSync(templatePath, "utf-8");
 
-  let processedTemplate = template.replaceAll("###AppModule", moduleName);
+  // Convert absolute path to relative path for webpack
+  const relativePath = path.relative(
+    path.join(workingDirectory, extensionFolderName),
+    mainModuleFilePath.replace(/\.ts$/, ""),
+  );
+
+  let processedTemplate = template.replaceAll("AppModule", moduleName);
   processedTemplate = processedTemplate.replaceAll(
-    "###AppModulePath",
-    mainModuleFilePath,
+    "AppModulePath",
+    relativePath,
   );
 
   const nirvanaFolder = `${workingDirectory}/${extensionFolderName}`;
@@ -80,7 +87,7 @@ async function configUserTsConfig(workingDirectory: string) {
   const tsConfigContent = fs.readFileSync(tsConfigPath, "utf-8");
   let tsConfig: any;
   try {
-    tsConfig = JSON.parse(tsConfigContent);
+    tsConfig = json5.parse(tsConfigContent);
   } catch (e: any) {
     appendNewLine(`Failed to parse tsconfig.json: ${e.toString()}`);
     return;
@@ -88,7 +95,7 @@ async function configUserTsConfig(workingDirectory: string) {
   if (!tsConfig.include) {
     tsConfig.include = [];
   }
-  if (!tsConfig.include.includes(extensionFolderName)) {
+  if (!tsConfig.include.includes(`${extensionFolderName}/**/*`)) {
     tsConfig.include.push(`${extensionFolderName}/**/*`);
   }
 
@@ -145,11 +152,69 @@ class nestJsHrmBasedRepl implements REPL {
       ignoreUndefined: true,
     });
 
-    // Add NestJS app context to REPL
+    // Add NestJS app context to REPL with safe error handling
     this.replServer.context.app = app;
-    this.replServer.context.get = (token: any) => app.get(token);
+    this.replServer.context.get = (token: any) => {
+      try {
+        return app.get(token);
+      } catch (error: any) {
+        console.error(`Provider not found: ${error.message}`);
+        return null;
+      }
+    };
+
+    // Add safe helper functions
+    this.replServer.context.safeGet = (token: any) => {
+      try {
+        return app.get(token);
+      } catch (error: any) {
+        return { error: error.message, provider: token };
+      }
+    };
+
+    this.replServer.context.listProviders = () => {
+      try {
+        // Get all registered providers
+        const container = (app as any).container;
+        const modules = container.getModules();
+        const providers: string[] = [];
+
+        modules.forEach((module: any) => {
+          const moduleProviders = module.providers;
+          moduleProviders.forEach((provider: any, key: any) => {
+            if (typeof key === "string") {
+              providers.push(key);
+            } else if (key.name) {
+              providers.push(key.name);
+            }
+          });
+        });
+
+        return providers;
+      } catch (error: any) {
+        return { error: error.message };
+      }
+    };
+
+    // Add process exception handlers to prevent REPL crashes
+    process.on("uncaughtException", (error) => {
+      console.error("Uncaught Exception:", error.message);
+      // Don't exit, just log the error
+    });
+
+    process.on("unhandledRejection", (reason, promise) => {
+      console.error("Unhandled Rejection at:", promise, "reason:", reason);
+      // Don't exit, just log the error
+    });
 
     console.log("🚀 NestJS HMR REPL started successfully!");
+    console.log("Available commands:");
+    console.log("  - app: Access the NestJS application instance");
+    console.log(
+      "  - get(token): Get a service from DI container (returns null if not found)",
+    );
+    console.log("  - safeGet(token): Get a service with error details");
+    console.log("  - listProviders(): List all available providers");
   }
 
   private async setUpHrm(): Promise<string | undefined> {
@@ -181,7 +246,7 @@ class nestJsHrmBasedRepl implements REPL {
               {
                 test: /\.ts$/,
                 use: {
-                  loader: "ts-loader",
+                  loader: path.join(extensionPath, "node_modules", "ts-loader"),
                   options: {
                     configFile: path.join(
                       this.workingDirectory,
@@ -201,6 +266,10 @@ class nestJsHrmBasedRepl implements REPL {
               "node_modules",
             ],
           },
+          resolveLoader: {
+            // Tell webpack where to find loaders (like ts-loader)
+            modules: [path.join(extensionPath, "node_modules"), "node_modules"],
+          },
           plugins: [new webpack.default.HotModuleReplacementPlugin()],
         } as any;
 
@@ -216,7 +285,7 @@ class nestJsHrmBasedRepl implements REPL {
             aggregateTimeout: 300,
             poll: undefined,
           },
-          (err: any, stats: any) => {
+          async (err: any, stats: any) => {
             if (err) {
               appendNewLine(`"Webpack compilation error: ${err.message}`);
               console.error("Webpack compilation error:", err);
@@ -232,6 +301,7 @@ class nestJsHrmBasedRepl implements REPL {
                 "Webpack compilation errors:",
                 stats.toJson().errors,
               );
+              reject(stats.toString());
               return;
             }
 
@@ -254,9 +324,18 @@ class nestJsHrmBasedRepl implements REPL {
                 process.chdir(this.workingDirectory);
 
                 try {
-                  // Load and execute the bundle
-                  delete require.cache[bundlePath];
-                  require(bundlePath);
+                  // Clear require cache for the bundle
+                  delete require.cache[path.resolve(bundlePath)];
+
+                  // Load and execute the bundle with proper error handling
+                  appendNewLine(`Attempting to require bundle: ${bundlePath}`);
+                  const bundleModule = require(path.resolve(bundlePath));
+                  appendNewLine(`Bundle loaded successfully`);
+                } catch (requireError: any) {
+                  appendNewLine(
+                    `Failed to require bundle: ${requireError.message}`,
+                  );
+                  throw requireError;
                 } finally {
                   // Restore original working directory
                   process.chdir(originalCwd);
@@ -265,12 +344,16 @@ class nestJsHrmBasedRepl implements REPL {
                 // Wait a bit for NestJS app to initialize
                 setTimeout(() => {
                   if ((global as any).nestApplication) {
+                    appendNewLine("NestJS application found in global scope");
                     this.launchRepl((global as any).nestApplication);
                     resolve(undefined);
                   } else {
-                    reject("NestJS application not found in global scope");
+                    const errorMsg =
+                      "NestJS application not found in global scope";
+                    appendNewLine(errorMsg);
+                    reject(errorMsg);
                   }
-                }, 1000);
+                }, 2000);
               } catch (executeError) {
                 console.error("Error executing bundle:", executeError);
                 reject(

@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { INestApplication } from '@nestjs/common';
-import { ###AppModule } from '###AppModulePath';
+import { AppModule } from 'AppModulePath';
 declare const global: any;
 declare const module: any;
+
+
+
 async function bootstrap() {
   try {
-    const app = await NestFactory.create(###AppModule);
+    const app = await NestFactory.create(AppModule);
     app.useLogger(console);
 
     // HMR setup
